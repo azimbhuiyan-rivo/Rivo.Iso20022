@@ -1,0 +1,56 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies / build output
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env (do NOT commit secrets)
+.env
+.env.*
+!.env.example
+
+# Tooling caches
+.vite/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# Package manager stores
+.pnpm-store/
+
+# Editor directories and files
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# Windows noise
+Thumbs.db
+Desktop.ini
+
+# IDE / misc
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Vim swap
+*.swp
+*.swo
+*.swn
