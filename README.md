@@ -1,73 +1,111 @@
-# React + TypeScript + Vite
+# Rivo ISO 20022 Generator (pain.001)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small, local, browser-based tool to generate **ISO 20022 payment files (pain.001.001.03)** for Swedish business banking (e.g. SEB import).
 
-Currently, two official plugins are available:
+It focuses on the monthly routine for a Swedish AB:
+- **Salaries file** (one credit transfer per employee)
+- **Payments file** (e.g. Skatteverket + Tele2 / Bankgiro + OCR)
+- Optional **AGI XML import** to prefill salary + tax amounts
+> Everything runs **client-side only**. No backend. Data is stored in your browser’s `localStorage`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## What it generates
+From **New Run**, the app generates two XML files:
+1) **Salaries**
+- File name: `ISO20022-Salaries-<executionDate>-<runId>.xml`
+- One transaction per employee (IBAN/BIC)
+- Batch header is based on your saved Profile
+2) **Payments**
+- File name: `ISO20022-Payments-<executionDate>-<runId>.xml`
+- Supports:
+  - **Skatteverket** (Bankgiro + OCR reference)
+  - **Tele2** (Bankgiro + OCR reference)
+- (The current implementation builds a single batch with multiple CdtTrfTxInf entries.)
 
-## React Compiler
+Schema used in XML:
+- `urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## App structure
+- **Profile**
+  - Company/initiator + debtor account settings (IBAN/BIC)
+  - Default payees (Skatteverket BG/OCR, Tele2 BG)
+  - Employees registry (personnummer → IBAN/BIC + name)
+- **New Run**
+  - Create a run label + execution date
+  - (Optional) upload **AGI XML** to auto-fill salary + tax values
+  - Download the two generated XML files
+- **History**
+  - Stores runs locally
+  - Re-download previously generated files
 
-## Expanding the ESLint configuration
+## AGI XML import (optional)
+On **New Run**, you can upload an AGI XML file and the tool will:
+- Match employees by **personnummer**
+- Prefill per-employee values like:
+  - `KontantBruttoErsattning`
+  - `AvdrPrelSkatt`
+- Prefill employer-level totals like:
+  - total withheld tax / employer fees (depending on the XML content)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Notes:
+- The import expects an XML structure compatible with Skatteverket AGI export (parsed via `DOMParser`).
+- If an employee isn’t found in your Profile mapping, they’ll be skipped (so keep your registry updated).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## How to use (monthly flow)
+1) Go to **Profile**
+   - Fill:
+     - Initiator name
+     - Sender ID + scheme
+     - Debtor IBAN + BIC
+     - Skatteverket Bankgiro + default OCR
+     - Tele2 Bankgiro
+   - Add employees:
+     - Name, Personnummer, IBAN, BIC
+2) Go to **New Run**
+   - Set a label (e.g. `Jan 2026 payroll`)
+   - Pick **Execution date**
+   - (Optional) Upload **AGI XML** to prefill
+   - Verify/adjust amounts
+   - Download:
+     - `ISO20022-Salaries-...xml`
+     - `ISO20022-Payments-...xml`
+3) Import into your bank
+   - Import the salary file where your bank expects payroll/salary ISO20022
+   - Import the payments file where your bank expects payments ISO20022
+> Always verify totals and references (especially OCR) in the bank UI before signing.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Data & security
+- All data is stored in **browser localStorage**
+  - Profile
+  - Employees list
+  - Run history
+- Clearing browser storage resets the app state.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
+### Prereqs
+- Node.js 18+ recommended
+### Install & run
+```bash
+npm install
+npm run dev
+````
+### Build
+```bash
+npm run build
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Customization
+Main logic lives in:
+* `src/lib/pain001.ts` (XML generation)
+* `src/lib/agi.ts` (AGI XML parsing)
+* `src/lib/storage.ts` (localStorage persistence)
+* `src/pages/NewRunPage.tsx` (run UI + download)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+To add new payment types (e.g. extra Bankgiro payees):
+* Extend the inputs in `types.ts` / Profile
+* Update `buildPaymentsXml(...)` in `pain001.ts`
+* Update `NewRunPage` UI
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Disclaimer
+This tool is a convenience generator and does not guarantee bank acceptance in all scenarios.
+You are responsible for validating the generated files and ensuring correctness before payment execution.
