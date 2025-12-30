@@ -196,9 +196,9 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <h2 className="h">OUTPUTS</h2>
 
           <div className="small">
-            SALARIES FILE: {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
+            SALARIES: {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
             <br />
-            PAYMENTS FILE: {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
+            PAYMENTS: {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
           </div>
 
           <div className="btnRow">
