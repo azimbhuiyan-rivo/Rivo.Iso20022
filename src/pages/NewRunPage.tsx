@@ -41,6 +41,10 @@ function fmtSek(n: number): string {
   return n.toFixed(2);
 }
 
+function minifyXml(xml: string): string {
+  return (xml ?? "").replace(/>\s+</g, "><").trim();
+}
+
 export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: Props) {
   const [run, setRun] = useState<RunInput>(() => ({ ...RUN_DEFAULT, executionDate: todayIso() }));
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
@@ -160,16 +164,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
   function downloadSalaries() {
     if (!salariesXml) return;
-    downloadTextFile(`${run.executionDate}-salaries.xml`, salariesXml);
+    downloadTextFile(`${run.executionDate}-salaries.xml`, minifyXml(salariesXml));
   }
 
   function downloadPayments() {
     if (!paymentsResult.xml) return;
-    downloadTextFile(`${run.executionDate}-payments.xml`, paymentsResult.xml);
+    downloadTextFile(`${run.executionDate}-payments.xml`, minifyXml(paymentsResult.xml));
   }
 
   function saveToHistory() {
-    const entry = makeHistoryEntry(run, salariesXml, paymentsResult.xml, agiMeta?.period);
+    const sal = salariesXml ? minifyXml(salariesXml) : null;
+    const pay = paymentsResult.xml ? minifyXml(paymentsResult.xml) : null;
+    const entry = makeHistoryEntry(run, sal, pay, agiMeta?.period);
     onSaveHistory(entry);
     setStatus({ kind: "ok", text: "Saved to history." });
   }
