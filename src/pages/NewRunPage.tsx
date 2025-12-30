@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Profile, RunInput } from "../lib/types";
 import { parseAgiXml } from "../lib/agi";
+import { parseMomsXml } from "../lib/moms";
 import { buildPaymentsXml, buildSalariesXml, digits } from "../lib/pain001";
 import { downloadTextFile } from "../lib/download";
 import { makeHistoryEntry, type HistoryEntry } from "../lib/storage";
@@ -44,8 +45,12 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [run, setRun] = useState<RunInput>(() => ({ ...RUN_DEFAULT, executionDate: todayIso() }));
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [agiMeta, setAgiMeta] = useState<{ fileName: string; period?: string } | null>(null);
+  const [momsMeta, setMomsMeta] = useState<{ fileName: string; period?: string; orgNr?: string } | null>(null);
 
-  const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && digits(run.tele2_ocr) === "", [run.tele2_amount, run.tele2_ocr]);
+  const tele2OcrDigits = useMemo(() => digits(run.tele2_ocr), [run.tele2_ocr]);
+  const tele2Ready = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits !== "", [run.tele2_amount, tele2OcrDigits]);
+  const tele2MissingForPayments = useMemo(() => !tele2Ready, [tele2Ready]);
+  const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits === "", [run.tele2_amount, tele2OcrDigits]);
 
   const salariesXml = useMemo(() => {
     try {
@@ -119,10 +124,38 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     }
   }
 
+  async function onPickMoms(file: File | null) {
+    if (!file) return;
+
+    const xmlText = await file.text();
+    const parsed = parseMomsXml(xmlText);
+
+    setMomsMeta({ fileName: file.name, period: parsed.period, orgNr: parsed.orgNr });
+
+    setRun((r) => ({
+      ...r,
+      moms: parsed.momsBetala,
+    }));
+
+    const orgNr10 = parsed.orgNr ? digits(parsed.orgNr).slice(-10) : "";
+    const senderDigits = digits(profile.senderId);
+    const senderOrgNr10 = senderDigits.slice(0, 10);
+
+    if (orgNr10 && senderOrgNr10 && orgNr10 !== senderOrgNr10) {
+      setStatus({
+        kind: "warn",
+        text: `MOMS loaded (period ${parsed.period ?? "?"}), but OrgNr mismatch: file ${orgNr10} vs senderId(orgnr) ${senderOrgNr10}.`,
+      });
+    } else {
+      setStatus({ kind: "ok", text: `MOMS loaded (period ${parsed.period ?? "?"}). Filled MOMS (MomsBetala).` });
+    }
+  }
+
   function reset() {
     setRun({ ...RUN_DEFAULT, executionDate: todayIso() });
     setStatus(null);
     setAgiMeta(null);
+    setMomsMeta(null);
   }
 
   function downloadSalaries() {
@@ -157,6 +190,10 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <label>LOAD AGI XML</label>
           <input type="file" accept=".xml" onChange={(e) => onPickAgi(e.target.files?.[0] ?? null)} />
           {agiMeta && <div className="small">AGI: {agiMeta.fileName}{agiMeta.period ? ` (period ${agiMeta.period})` : ""}</div>}
+
+          <label>LOAD MOMS XML</label>
+          <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
+          {momsMeta && <div className="small">MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
 
           <hr />
 
@@ -205,7 +242,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             <button className="primary" onClick={downloadSalaries} disabled={!salariesXml}>
               DOWNLOAD SALARIES
             </button>
-            <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml}>
+            <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml || tele2MissingForPayments}>
               DOWNLOAD PAYMENTS
             </button>
           </div>
@@ -223,6 +260,12 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
               <button style={{ marginLeft: 10 }} onClick={onGoProfile}>
                 Go to Profile
               </button>
+            </div>
+          )}
+
+          {tele2MissingForPayments && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Payments download is disabled until <b>Tele2 amount</b> + <b>Tele2 OCR</b> are provided (monthly invoice).
             </div>
           )}
 
