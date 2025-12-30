@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { loadProfile, saveProfile, loadHistory, saveHistory, type HistoryEntry } from "./lib/storage";
 import type { Profile } from "./lib/types";
 import { NewRunPage } from "./pages/NewRunPage";

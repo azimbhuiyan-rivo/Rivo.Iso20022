@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Profile, RunInput } from "../lib/types";
 import { parseAgiXml } from "../lib/agi";
 import { buildPaymentsXml, buildSalariesXml, digits } from "../lib/pain001";

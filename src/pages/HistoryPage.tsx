@@ -1,4 +1,3 @@
-import React from "react";
 import type { HistoryEntry } from "../lib/storage";
 import { downloadTextFile } from "../lib/download";
 
