@@ -149,33 +149,33 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
       <div className="row">
         <div className="col">
-          <h2 className="h">New run</h2>
+          <h2 className="h">NEW RUN</h2>
 
-          <label>Execution date (YYYY-MM-DD)</label>
+          <label>EXECUTION DATE (YYYY-MM-DD)</label>
           <input value={run.executionDate} placeholder="YYYY-MM-DD" onChange={(e) => setField("executionDate", e.target.value)} />
 
-          <label>Load AGI XML (auto-fills salaries + AGI + avdragen skatt)</label>
+          <label>LOAD AGI XML</label>
           <input type="file" accept=".xml" onChange={(e) => onPickAgi(e.target.files?.[0] ?? null)} />
           {agiMeta && <div className="small">AGI: {agiMeta.fileName}{agiMeta.period ? ` (period ${agiMeta.period})` : ""}</div>}
 
           <hr />
 
-          <h3 className="h3">Salaries</h3>
+          <h3 className="h3">SALARIES</h3>
 
-          <label>Azim Salary</label>
+          <label>AZIM SALARY</label>
           <input value={String(run.salary_ab)} onChange={(e) => setField("salary_ab", toNumber(e.target.value))} inputMode="decimal" />
 
-          <label>Aynun Salary</label>
+          <label>AYNUN SALARY</label>
           <input value={String(run.salary_an)} onChange={(e) => setField("salary_an", toNumber(e.target.value))} inputMode="decimal" />
 
           <hr />
 
-          <h3 className="h3">Skatteverket</h3>
+          <h3 className="h3">SKATTEVERKET</h3>
 
-          <label>Avdragen Skatt</label>
+          <label>AVDRAGEN SKATT</label>
           <input value={String(run.avdragen_skatt)} onChange={(e) => setField("avdragen_skatt", toNumber(e.target.value))} inputMode="decimal" />
 
-          <label>Arbetsgivaravgift</label>
+          <label>ARBETSGIVARAVGIFT</label>
           <input value={String(run.agi)} onChange={(e) => setField("agi", toNumber(e.target.value))} inputMode="decimal" />
 
           <label>MOMS</label>
@@ -183,37 +183,37 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <hr />
 
-          <h3 className="h3">Tele2</h3>
+          <h3 className="h3">TELE2</h3>
 
-          <label>Tele2 amount</label>
+          <label>TELE2 AMOUNT</label>
           <input value={String(run.tele2_amount)} onChange={(e) => setField("tele2_amount", toNumber(e.target.value))} inputMode="decimal" />
 
-          <label>Tele2 OCR</label>
+          <label>TELE2 OCR</label>
           <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
         </div>
 
         <div className="col">
-          <h2 className="h">Outputs (two files)</h2>
+          <h2 className="h">OUTPUTS</h2>
 
           <div className="small">
-            Salaries file (upload under <b>Lön</b>): {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
+            SALARIES FILE: {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
             <br />
-            Payments file (upload under <b>Utbetalning (ISO 20022)</b>): {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
+            PAYMENTS FILE: {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
           </div>
 
           <div className="btnRow">
             <button className="primary" onClick={downloadSalaries} disabled={!salariesXml}>
-              Download salaries XML
+              DOWNLOAD SALARIES
             </button>
             <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml}>
-              Download payments XML
+              DOWNLOAD PAYMENTS
             </button>
           </div>
 
           <div className="btnRow">
-            <button onClick={saveToHistory}>Save to history</button>
+            <button onClick={saveToHistory}>SAVE TO HISTORY</button>
             <button className="danger" onClick={reset}>
-              Reset
+              RESET
             </button>
           </div>
 
