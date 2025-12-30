@@ -22,6 +22,8 @@ const RUN_DEFAULT: RunInput = {
   moms: 0,
   tele2_amount: 0,
   tele2_ocr: "",
+  lans_amount: 0,
+  lans_ocr: "",
 };
 
 function toNumber(v: string): number {
@@ -56,6 +58,12 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const tele2MissingForPayments = useMemo(() => !tele2Ready, [tele2Ready]);
   const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits === "", [run.tele2_amount, tele2OcrDigits]);
 
+  const lansOcrDigits = useMemo(() => digits(run.lans_ocr), [run.lans_ocr]);
+  const lansBgDigits = useMemo(() => digits(profile.lansforsakringarBg ?? ""), [profile.lansforsakringarBg]);
+  const lansNeedsOcr = useMemo(() => run.lans_amount > 0 && lansOcrDigits === "", [run.lans_amount, lansOcrDigits]);
+  const lansNeedsBg = useMemo(() => run.lans_amount > 0 && lansBgDigits === "", [run.lans_amount, lansBgDigits]);
+  const lansReadyForPayments = useMemo(() => run.lans_amount === 0 || (lansOcrDigits !== "" && lansBgDigits !== ""), [run.lans_amount, lansOcrDigits, lansBgDigits]);
+
   const salariesXml = useMemo(() => {
     try {
       return buildSalariesXml(profile, run);
@@ -70,11 +78,17 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       if (!xml && tele2NeedsOcr) {
         return { xml: null as string | null, error: "Tele2 OCR is required when Tele2 amount > 0." };
       }
+      if (!xml && lansNeedsBg) {
+        return { xml: null as string | null, error: "Länsförsäkringar BG is required when Länsförsäkringar amount > 0." };
+      }
+      if (!xml && lansNeedsOcr) {
+        return { xml: null as string | null, error: "Länsförsäkringar OCR is required when Länsförsäkringar amount > 0." };
+      }
       return { xml, error: null as string | null };
     } catch (e: any) {
       return { xml: null as string | null, error: e?.message ? String(e.message) : "Failed to build payments XML." };
     }
-  }, [profile, run, tele2NeedsOcr]);
+  }, [profile, run, tele2NeedsOcr, lansNeedsBg, lansNeedsOcr]);
 
   const outputs = useMemo(() => {
     const salaryTx = (run.salary_ab > 0 ? 1 : 0) + (run.salary_an > 0 ? 1 : 0);
@@ -82,10 +96,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       (run.agi > 0 ? 1 : 0) +
       (run.avdragen_skatt > 0 ? 1 : 0) +
       (run.moms > 0 ? 1 : 0) +
-      (run.tele2_amount > 0 ? 1 : 0);
+      (run.tele2_amount > 0 ? 1 : 0) +
+      (run.lans_amount > 0 ? 1 : 0);
 
     const salarySum = run.salary_ab + run.salary_an;
-    const paymentsSum = run.agi + run.avdragen_skatt + run.moms + run.tele2_amount;
+    const paymentsSum = run.agi + run.avdragen_skatt + run.moms + run.tele2_amount + run.lans_amount;
 
     return { salaryTx, paymentsTx, salarySum, paymentsSum };
   }, [run]);
@@ -233,6 +248,16 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <label>TELE2 OCR</label>
           <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
+
+          <hr />
+
+          <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
+
+          <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
+          <input value={String(run.lans_amount)} onChange={(e) => setField("lans_amount", toNumber(e.target.value))} inputMode="decimal" />
+
+          <label>LÄNSFÖRSÄKRINGAR OCR</label>
+          <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
         </div>
 
         <div className="col">
@@ -248,7 +273,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             <button className="primary" onClick={downloadSalaries} disabled={!salariesXml}>
               DOWNLOAD SALARIES
             </button>
-            <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml || tele2MissingForPayments}>
+            <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml || tele2MissingForPayments || !lansReadyForPayments}>
               DOWNLOAD PAYMENTS
             </button>
           </div>
@@ -278,6 +303,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           {tele2NeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Tele2 OCR is required when Tele2 amount &gt; 0.
+            </div>
+          )}
+
+          {lansNeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Länsförsäkringar BG is required in <b>Profile</b> when Länsförsäkringar amount &gt; 0.
+            </div>
+          )}
+
+          {lansNeedsOcr && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Länsförsäkringar OCR is required when Länsförsäkringar amount &gt; 0.
             </div>
           )}
 

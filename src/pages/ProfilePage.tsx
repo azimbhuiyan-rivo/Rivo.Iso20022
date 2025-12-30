@@ -21,6 +21,7 @@ export function ProfilePage({ profile, onChange }: Props) {
   const missing = useMemo(() => {
     const p = draft;
     const m: string[] = [];
+    if (!p.initiatorName) m.push("Initiator / company name");
     if (!p.senderId) m.push("Sender ID");
     if (!p.debtorIban) m.push("Debtor IBAN");
     if (!p.debtorBic) m.push("Debtor BIC");
@@ -102,6 +103,13 @@ export function ProfilePage({ profile, onChange }: Props) {
             <label>Tele2 BG</label>
             <input disabled={!editing} value={draft.tele2Bg} onChange={(e) => set("tele2Bg", onlyDigits(e.target.value))} />
 
+            <label>Länsförsäkringar BG</label>
+            <input
+              disabled={!editing}
+              value={draft.lansforsakringarBg}
+              onChange={(e) => set("lansforsakringarBg", onlyDigits(e.target.value))}
+            />
+
             <div className="small" style={{ marginTop: 10 }}>
               Stored in your browser (localStorage). Not pushed to GitHub Pages.
             </div>
@@ -173,7 +181,11 @@ export function ProfilePage({ profile, onChange }: Props) {
         </div>
       </div>
 
-      {!editing && <div className="small" style={{ marginTop: 10 }}>Profile is locked. Click <b>Edit</b> to change values.</div>}
+      {!editing && (
+        <div className="small" style={{ marginTop: 10 }}>
+          Profile is locked. Click <b>Edit</b> to change values.
+        </div>
+      )}
     </div>
   );
 }

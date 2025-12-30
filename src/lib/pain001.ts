@@ -106,7 +106,7 @@ ${body}
 
 export function buildPaymentsXml(profile: Profile, run: RunInput): string | null {
   const skvTxs: Array<{ e2e: string; amount: number; ustrd: string }> = [];
-  const vendorTxs: Array<{ e2e: string; amount: number; ustrd: string }> = [];
+  const vendorTxs: Array<{ e2e: string; amount: number; ustrd: string; name: string; bg: string }> = [];
 
   if (run.agi > 0) skvTxs.push({ e2e: `ARBETSGIVARAVGIFT-${run.executionDate}`, amount: run.agi, ustrd: `Arbetsgivaravgift - ${run.executionDate} OCR ${digits(profile.skvOcr)}` });
   if (run.avdragen_skatt > 0) skvTxs.push({ e2e: `AVDRAGEN-SKATT-${run.executionDate}`, amount: run.avdragen_skatt, ustrd: `SKATT - ${run.executionDate} OCR ${digits(profile.skvOcr)}` });
@@ -115,7 +115,17 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
   if (run.tele2_amount > 0) {
     const ocr = digits(run.tele2_ocr);
     if (!ocr) return null;
-    vendorTxs.push({ e2e: `TELE2-${run.executionDate}`, amount: run.tele2_amount, ustrd: `OCR ${ocr}` });
+    const bg = digits(profile.tele2Bg);
+    if (!bg) return null;
+    vendorTxs.push({ e2e: `TELE2-${run.executionDate}`, amount: run.tele2_amount, ustrd: `OCR ${ocr}`, name: "Tele2", bg });
+  }
+
+  if (run.lans_amount > 0) {
+    const ocr = digits(run.lans_ocr);
+    if (!ocr) return null;
+    const bg = digits(profile.lansforsakringarBg);
+    if (!bg) return null;
+    vendorTxs.push({ e2e: `LANSF-${run.executionDate}`, amount: run.lans_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
   }
 
   const nbTxs = skvTxs.length + vendorTxs.length;
@@ -169,8 +179,8 @@ ${vendorTxs
 <PmtId><InstrId>${esc(t.e2e)}</InstrId><EndToEndId>${esc(t.e2e)}</EndToEndId></PmtId>
 <Amt><InstdAmt Ccy="SEK">${amt(t.amount)}</InstdAmt></Amt>
 <CdtrAgt><FinInstnId><ClrSysMmbId><ClrSysId><Cd>SESBA</Cd></ClrSysId><MmbId>9900</MmbId></ClrSysMmbId></FinInstnId></CdtrAgt>
-<Cdtr><Nm>Tele2</Nm></Cdtr>
-<CdtrAcct><Id><Othr><Id>${esc(digits(profile.tele2Bg))}</Id><SchmeNm><Prtry>BGNR</Prtry></SchmeNm></Othr></Id></CdtrAcct>
+<Cdtr><Nm>${esc(t.name)}</Nm></Cdtr>
+<CdtrAcct><Id><Othr><Id>${esc(t.bg)}</Id><SchmeNm><Prtry>BGNR</Prtry></SchmeNm></Othr></Id></CdtrAcct>
 <RmtInf><Ustrd>${esc(t.ustrd)}</Ustrd></RmtInf>
 </CdtTrfTxInf>`
   )

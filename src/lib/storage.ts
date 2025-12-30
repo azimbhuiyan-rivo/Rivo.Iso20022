@@ -22,6 +22,7 @@ export function defaultProfile(): Profile {
     skvBg: "",
     skvOcr: "",
     tele2Bg: "",
+    lansforsakringarBg: "",
     employees: {
       azim: { personnummer: "", clearingAccount: "" },
       aynun: { personnummer: "", clearingAccount: "" },
@@ -33,7 +34,26 @@ export function loadProfile(): Profile {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return defaultProfile();
-    return { ...defaultProfile(), ...(JSON.parse(raw) as Profile) };
+
+    const base = defaultProfile();
+    const parsed = JSON.parse(raw) as Partial<Profile>;
+
+    return {
+      ...base,
+      ...parsed,
+      employees: {
+        ...base.employees,
+        ...(parsed.employees ?? {}),
+        azim: {
+          ...base.employees.azim,
+          ...(parsed.employees?.azim ?? {}),
+        },
+        aynun: {
+          ...base.employees.aynun,
+          ...(parsed.employees?.aynun ?? {}),
+        },
+      },
+    };
   } catch {
     return defaultProfile();
   }
