@@ -58,18 +58,17 @@ export default function App() {
         </button>
       </div>
 
-      {tab === "new" && (
-        <NewRunPage
-          profile={profile}
-          hasProfile={hasProfile}
-          onGoProfile={() => setTab("profile")}
-          onSaveHistory={addToHistory}
-        />
-      )}
+      <div style={{ display: tab === "new" ? "block" : "none" }}>
+        <NewRunPage profile={profile} hasProfile={hasProfile} onGoProfile={() => setTab("profile")} onSaveHistory={addToHistory} />
+      </div>
 
-      {tab === "profile" && <ProfilePage profile={profile} onChange={updateProfile} />}
+      <div style={{ display: tab === "profile" ? "block" : "none" }}>
+        <ProfilePage profile={profile} onChange={updateProfile} />
+      </div>
 
-      {tab === "history" && <HistoryPage history={history} onClear={clearHistory} />}
+      <div style={{ display: tab === "history" ? "block" : "none" }}>
+        <HistoryPage history={history} onClear={clearHistory} />
+      </div>
     </div>
   );
 }
