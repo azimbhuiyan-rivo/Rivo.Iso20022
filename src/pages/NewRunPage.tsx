@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Profile, RunInput } from "../lib/types";
 import { parseAgiXml } from "../lib/agi";
 import { parseMomsXml } from "../lib/moms";
@@ -33,80 +33,114 @@ function toNumber(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function todayIso(): string {
-  const d = new Date();
-  const pad = (x: number) => String(x).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 function fmtSek(n: number): string {
   return n.toFixed(2);
+}
+
+function fmtInputNumber(n: number): string {
+  return n === 0 ? "" : String(n);
 }
 
 function minifyXml(xml: string): string {
   return (xml ?? "").replace(/>\s+</g, "><").trim();
 }
 
+function isPreferredExecutionDate(iso: string): boolean {
+  const parts = (iso ?? "").split("-");
+  if (parts.length !== 3) return true;
+  const day = Number(parts[2]);
+  return day === 22 || day === 23 || day === 24;
+}
+
 export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: Props) {
-  const [run, setRun] = useState<RunInput>(() => ({ ...RUN_DEFAULT, executionDate: todayIso() }));
+  const [run, setRun] = useState<RunInput>(() => ({ ...RUN_DEFAULT }));
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [agiMeta, setAgiMeta] = useState<{ fileName: string; period?: string } | null>(null);
+
+  const [includeMoms, setIncludeMoms] = useState(false);
   const [momsMeta, setMomsMeta] = useState<{ fileName: string; period?: string; orgNr?: string } | null>(null);
 
+  const [includeLans, setIncludeLans] = useState(false);
+
+  const dateRef = useRef<HTMLInputElement | null>(null);
+
+  const executionReady = useMemo(() => Boolean(run.executionDate && run.executionDate.trim()), [run.executionDate]);
+  const agiReady = useMemo(() => Boolean(agiMeta), [agiMeta]);
+  const momsReady = useMemo(() => !includeMoms || Boolean(momsMeta), [includeMoms, momsMeta]);
+
   const tele2OcrDigits = useMemo(() => digits(run.tele2_ocr), [run.tele2_ocr]);
-  const tele2Ready = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits !== "", [run.tele2_amount, tele2OcrDigits]);
+  const tele2BgDigits = useMemo(() => digits(profile.tele2Bg ?? ""), [profile.tele2Bg]);
+  const tele2Ready = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits !== "" && tele2BgDigits !== "", [run.tele2_amount, tele2OcrDigits, tele2BgDigits]);
   const tele2MissingForPayments = useMemo(() => !tele2Ready, [tele2Ready]);
   const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits === "", [run.tele2_amount, tele2OcrDigits]);
+  const tele2NeedsBg = useMemo(() => run.tele2_amount > 0 && tele2BgDigits === "", [run.tele2_amount, tele2BgDigits]);
 
   const lansOcrDigits = useMemo(() => digits(run.lans_ocr), [run.lans_ocr]);
   const lansBgDigits = useMemo(() => digits(profile.lansforsakringarBg ?? ""), [profile.lansforsakringarBg]);
-  const lansNeedsOcr = useMemo(() => run.lans_amount > 0 && lansOcrDigits === "", [run.lans_amount, lansOcrDigits]);
-  const lansNeedsBg = useMemo(() => run.lans_amount > 0 && lansBgDigits === "", [run.lans_amount, lansBgDigits]);
-  const lansReadyForPayments = useMemo(() => run.lans_amount === 0 || (lansOcrDigits !== "" && lansBgDigits !== ""), [run.lans_amount, lansOcrDigits, lansBgDigits]);
+  const lansNeedsOcr = useMemo(() => includeLans && run.lans_amount > 0 && lansOcrDigits === "", [includeLans, run.lans_amount, lansOcrDigits]);
+  const lansNeedsBg = useMemo(() => includeLans && run.lans_amount > 0 && lansBgDigits === "", [includeLans, run.lans_amount, lansBgDigits]);
+  const lansReadyForPayments = useMemo(
+    () => !includeLans || run.lans_amount === 0 || (lansOcrDigits !== "" && lansBgDigits !== ""),
+    [includeLans, run.lans_amount, lansOcrDigits, lansBgDigits]
+  );
 
   const salariesXml = useMemo(() => {
+    if (!executionReady) return null;
+    if (!agiReady) return null;
     try {
       return buildSalariesXml(profile, run);
     } catch (e: any) {
       return null;
     }
-  }, [profile, run]);
+  }, [profile, run, executionReady, agiReady]);
 
   const paymentsResult = useMemo(() => {
+    if (!executionReady) return { xml: null as string | null, error: null as string | null };
+    if (!agiReady) return { xml: null as string | null, error: null as string | null };
+    if (!momsReady) return { xml: null as string | null, error: null as string | null };
     try {
       const xml = buildPaymentsXml(profile, run);
-      if (!xml && tele2NeedsOcr) {
-        return { xml: null as string | null, error: "Tele2 OCR is required when Tele2 amount > 0." };
-      }
-      if (!xml && lansNeedsBg) {
-        return { xml: null as string | null, error: "Länsförsäkringar BG is required when Länsförsäkringar amount > 0." };
-      }
-      if (!xml && lansNeedsOcr) {
-        return { xml: null as string | null, error: "Länsförsäkringar OCR is required when Länsförsäkringar amount > 0." };
-      }
+      if (!xml && tele2NeedsOcr) return { xml: null as string | null, error: "Tele2 OCR is required when Tele2 amount > 0." };
+      if (!xml && tele2NeedsBg) return { xml: null as string | null, error: "Tele2 BG is required in Profile when Tele2 amount > 0." };
+      if (!xml && lansNeedsBg) return { xml: null as string | null, error: "Länsförsäkringar BG is required in Profile when Länsförsäkringar amount > 0." };
+      if (!xml && lansNeedsOcr) return { xml: null as string | null, error: "Länsförsäkringar OCR is required when Länsförsäkringar amount > 0." };
       return { xml, error: null as string | null };
     } catch (e: any) {
       return { xml: null as string | null, error: e?.message ? String(e.message) : "Failed to build payments XML." };
     }
-  }, [profile, run, tele2NeedsOcr, lansNeedsBg, lansNeedsOcr]);
+  }, [profile, run, executionReady, agiReady, momsReady, tele2NeedsOcr, tele2NeedsBg, lansNeedsBg, lansNeedsOcr]);
 
   const outputs = useMemo(() => {
     const salaryTx = (run.salary_ab > 0 ? 1 : 0) + (run.salary_an > 0 ? 1 : 0);
     const paymentsTx =
       (run.agi > 0 ? 1 : 0) +
       (run.avdragen_skatt > 0 ? 1 : 0) +
-      (run.moms > 0 ? 1 : 0) +
+      (includeMoms && run.moms > 0 ? 1 : 0) +
       (run.tele2_amount > 0 ? 1 : 0) +
-      (run.lans_amount > 0 ? 1 : 0);
+      (includeLans && run.lans_amount > 0 ? 1 : 0);
 
     const salarySum = run.salary_ab + run.salary_an;
-    const paymentsSum = run.agi + run.avdragen_skatt + run.moms + run.tele2_amount + run.lans_amount;
+    const paymentsSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0) + run.tele2_amount + (includeLans ? run.lans_amount : 0);
 
     return { salaryTx, paymentsTx, salarySum, paymentsSum };
-  }, [run]);
+  }, [run, includeMoms, includeLans]);
 
   function setField<K extends keyof RunInput>(key: K, value: RunInput[K]) {
     setRun((r) => ({ ...r, [key]: value }));
+  }
+
+  function openDatePicker() {
+    const el = dateRef.current as any;
+    if (el && typeof el.showPicker === "function") el.showPicker();
+  }
+
+  function onPickExecutionDate(next: string) {
+    if (next && !isPreferredExecutionDate(next)) {
+      const ok = window.confirm("Execution date is usually 22, 23, or 24. Do you want to continue with this date?");
+      if (!ok) return;
+      setStatus({ kind: "warn", text: `Non-standard execution date selected: ${next}.` });
+    }
+    setField("executionDate", next);
   }
 
   async function onPickAgi(file: File | null) {
@@ -171,10 +205,12 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   }
 
   function reset() {
-    setRun({ ...RUN_DEFAULT, executionDate: todayIso() });
+    setRun({ ...RUN_DEFAULT });
     setStatus(null);
     setAgiMeta(null);
+    setIncludeMoms(false);
     setMomsMeta(null);
+    setIncludeLans(false);
   }
 
   function downloadSalaries() {
@@ -195,56 +231,112 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setStatus({ kind: "ok", text: "Saved to history." });
   }
 
+  const paymentsDisabled =
+    !executionReady ||
+    !agiReady ||
+    !momsReady ||
+    !paymentsResult.xml ||
+    tele2MissingForPayments ||
+    !lansReadyForPayments;
+
   return (
     <div className="card">
+      <style>{`
+        .dateInput { color-scheme: dark; cursor: pointer; }
+        .dateInput::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .9; }
+      `}</style>
+
       {status?.kind === "warn" && <div className="small warn">{status.text}</div>}
       {status?.kind === "ok" && <div className="small ok">{status.text}</div>}
       {paymentsResult.error && <div className="small warn">{paymentsResult.error}</div>}
+
+      {!executionReady && <div className="small warn">Execution date is required.</div>}
+      {!agiReady && <div className="small warn">AGI XML is required.</div>}
+      {includeMoms && !momsMeta && <div className="small warn">MOMS XML is required when MOMS is added.</div>}
 
       <div className="row">
         <div className="col">
           <h2 className="h">NEW RUN</h2>
 
-          <label>EXECUTION DATE (YYYY-MM-DD)</label>
-          <input value={run.executionDate} placeholder="YYYY-MM-DD" onChange={(e) => setField("executionDate", e.target.value)} />
+          <label>EXECUTION DATE</label>
+          <input
+            ref={dateRef}
+            className="dateInput"
+            type="date"
+            value={run.executionDate}
+            onClick={openDatePicker}
+            onFocus={openDatePicker}
+            onChange={(e) => onPickExecutionDate(e.target.value)}
+          />
 
           <label>LOAD AGI XML</label>
           <input type="file" accept=".xml" onChange={(e) => onPickAgi(e.target.files?.[0] ?? null)} />
           {agiMeta && <div className="small">AGI: {agiMeta.fileName}{agiMeta.period ? ` (period ${agiMeta.period})` : ""}</div>}
-
-          <label>LOAD MOMS XML</label>
-          <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
-          {momsMeta && <div className="small">MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
 
           <hr />
 
           <h3 className="h3">SALARIES</h3>
 
           <label>AZIM SALARY</label>
-          <input value={String(run.salary_ab)} onChange={(e) => setField("salary_ab", toNumber(e.target.value))} inputMode="decimal" />
+          <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
           <label>AYNUN SALARY</label>
-          <input value={String(run.salary_an)} onChange={(e) => setField("salary_an", toNumber(e.target.value))} inputMode="decimal" />
+          <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
 
           <hr />
 
           <h3 className="h3">SKATTEVERKET</h3>
 
           <label>AVDRAGEN SKATT</label>
-          <input value={String(run.avdragen_skatt)} onChange={(e) => setField("avdragen_skatt", toNumber(e.target.value))} inputMode="decimal" />
+          <input disabled value={fmtInputNumber(run.avdragen_skatt)} inputMode="decimal" />
 
           <label>ARBETSGIVARAVGIFT</label>
-          <input value={String(run.agi)} onChange={(e) => setField("agi", toNumber(e.target.value))} inputMode="decimal" />
+          <input disabled value={fmtInputNumber(run.agi)} inputMode="decimal" />
 
-          <label>MOMS</label>
-          <input value={String(run.moms)} onChange={(e) => setField("moms", toNumber(e.target.value))} inputMode="decimal" />
+          <hr />
+
+          <h3 className="h3">MOMS</h3>
+
+          {!includeMoms ? (
+            <button
+              onClick={() => {
+                setIncludeMoms(true);
+                setMomsMeta(null);
+                setRun((r) => ({ ...r, moms: 0 }));
+              }}
+            >
+              Add MOMS
+            </button>
+          ) : (
+            <>
+              <div className="btnRow" style={{ marginTop: 0 }}>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setIncludeMoms(false);
+                    setMomsMeta(null);
+                    setRun((r) => ({ ...r, moms: 0 }));
+                  }}
+                >
+                  Remove MOMS
+                </button>
+              </div>
+
+              <label>LOAD MOMS XML</label>
+              <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
+              {momsMeta && <div className="small">MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
+
+              <label>MOMS (from XML)</label>
+              <input disabled value={fmtInputNumber(run.moms)} inputMode="decimal" />
+            </>
+          )}
 
           <hr />
 
           <h3 className="h3">TELE2</h3>
 
           <label>TELE2 AMOUNT</label>
-          <input value={String(run.tele2_amount)} onChange={(e) => setField("tele2_amount", toNumber(e.target.value))} inputMode="decimal" />
+          <input value={fmtInputNumber(run.tele2_amount)} onChange={(e) => setField("tele2_amount", toNumber(e.target.value))} inputMode="decimal" />
 
           <label>TELE2 OCR</label>
           <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
@@ -253,11 +345,36 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
-          <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
-          <input value={String(run.lans_amount)} onChange={(e) => setField("lans_amount", toNumber(e.target.value))} inputMode="decimal" />
+          {!includeLans ? (
+            <button
+              onClick={() => {
+                setIncludeLans(true);
+                setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
+              }}
+            >
+              Add Länsförsäkringar
+            </button>
+          ) : (
+            <>
+              <div className="btnRow" style={{ marginTop: 0 }}>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setIncludeLans(false);
+                    setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
+                  }}
+                >
+                  Remove Länsförsäkringar
+                </button>
+              </div>
 
-          <label>LÄNSFÖRSÄKRINGAR OCR</label>
-          <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
+              <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
+              <input value={fmtInputNumber(run.lans_amount)} onChange={(e) => setField("lans_amount", toNumber(e.target.value))} inputMode="decimal" />
+
+              <label>LÄNSFÖRSÄKRINGAR OCR</label>
+              <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
+            </>
+          )}
         </div>
 
         <div className="col">
@@ -270,16 +387,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           </div>
 
           <div className="btnRow">
-            <button className="primary" onClick={downloadSalaries} disabled={!salariesXml}>
+            <button className="primary" onClick={downloadSalaries} disabled={!executionReady || !agiReady || !salariesXml}>
               DOWNLOAD SALARIES
             </button>
-            <button className="primary" onClick={downloadPayments} disabled={!paymentsResult.xml || tele2MissingForPayments || !lansReadyForPayments}>
+            <button className="primary" onClick={downloadPayments} disabled={paymentsDisabled}>
               DOWNLOAD PAYMENTS
             </button>
           </div>
 
           <div className="btnRow">
-            <button onClick={saveToHistory}>SAVE TO HISTORY</button>
+            <button onClick={saveToHistory} disabled={!executionReady || !agiReady || (includeMoms && !momsMeta)}>
+              SAVE TO HISTORY
+            </button>
             <button className="danger" onClick={reset}>
               RESET
             </button>
@@ -296,7 +415,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           {tele2MissingForPayments && (
             <div className="small warn" style={{ marginTop: 12 }}>
-              Payments download is disabled until <b>Tele2 amount</b> + <b>Tele2 OCR</b> are provided (monthly invoice).
+              Payments download is disabled until <b>Tele2 amount</b> + <b>Tele2 OCR</b> are provided.
+            </div>
+          )}
+
+          {tele2NeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Tele2 BG is required in <b>Profile</b>.
             </div>
           )}
 
@@ -306,13 +431,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             </div>
           )}
 
-          {lansNeedsBg && (
+          {includeLans && lansNeedsBg && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Länsförsäkringar BG is required in <b>Profile</b> when Länsförsäkringar amount &gt; 0.
             </div>
           )}
 
-          {lansNeedsOcr && (
+          {includeLans && lansNeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Länsförsäkringar OCR is required when Länsförsäkringar amount &gt; 0.
             </div>
