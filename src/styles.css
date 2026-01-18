@@ -197,3 +197,18 @@ tr:last-child td { border-bottom: none; }
 .readonlyPanel textarea {
   cursor: not-allowed;
 }
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+input:disabled::placeholder,
+textarea:disabled::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}

@@ -70,6 +70,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
   const tele2OcrDigits = useMemo(() => digits(run.tele2_ocr), [run.tele2_ocr]);
   const tele2BgDigits = useMemo(() => digits(profile.tele2Bg ?? ""), [profile.tele2Bg]);
+  const tele2AmountEnabled = useMemo(() => tele2OcrDigits !== "", [tele2OcrDigits]);
   const tele2Ready = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits !== "" && tele2BgDigits !== "", [run.tele2_amount, tele2OcrDigits, tele2BgDigits]);
   const tele2MissingForPayments = useMemo(() => !tele2Ready, [tele2Ready]);
   const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits === "", [run.tele2_amount, tele2OcrDigits]);
@@ -77,6 +78,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
   const lansOcrDigits = useMemo(() => digits(run.lans_ocr), [run.lans_ocr]);
   const lansBgDigits = useMemo(() => digits(profile.lansforsakringarBg ?? ""), [profile.lansforsakringarBg]);
+  const lansAmountEnabled = useMemo(() => lansOcrDigits !== "", [lansOcrDigits]);
   const lansNeedsOcr = useMemo(() => includeLans && run.lans_amount > 0 && lansOcrDigits === "", [includeLans, run.lans_amount, lansOcrDigits]);
   const lansNeedsBg = useMemo(() => includeLans && run.lans_amount > 0 && lansBgDigits === "", [includeLans, run.lans_amount, lansBgDigits]);
   const lansReadyForPayments = useMemo(
@@ -335,11 +337,16 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <h3 className="h3">TELE2</h3>
 
-          <label>TELE2 AMOUNT</label>
-          <input value={fmtInputNumber(run.tele2_amount)} onChange={(e) => setField("tele2_amount", toNumber(e.target.value))} inputMode="decimal" />
-
           <label>TELE2 OCR</label>
           <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
+
+          <label>TELE2 AMOUNT</label>
+          <input
+            disabled={!tele2AmountEnabled}
+            value={fmtInputNumber(run.tele2_amount)}
+            onChange={(e) => setField("tele2_amount", toNumber(e.target.value))}
+            inputMode="decimal"
+          />
 
           <hr />
 
@@ -368,11 +375,16 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                 </button>
               </div>
 
-              <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
-              <input value={fmtInputNumber(run.lans_amount)} onChange={(e) => setField("lans_amount", toNumber(e.target.value))} inputMode="decimal" />
-
               <label>LÄNSFÖRSÄKRINGAR OCR</label>
               <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
+
+              <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
+              <input
+                disabled={!lansAmountEnabled}
+                value={fmtInputNumber(run.lans_amount)}
+                onChange={(e) => setField("lans_amount", toNumber(e.target.value))}
+                inputMode="decimal"
+              />
             </>
           )}
         </div>
