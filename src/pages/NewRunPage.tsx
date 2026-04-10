@@ -22,6 +22,8 @@ const RUN_DEFAULT: RunInput = {
   moms: 0,
   tele2_amount: 0,
   tele2_ocr: "",
+  dnb_amount: 0,
+  dnb_ocr: "",
   lans_amount: 0,
   lans_ocr: "",
 };
@@ -76,6 +78,14 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const tele2NeedsOcr = useMemo(() => run.tele2_amount > 0 && tele2OcrDigits === "", [run.tele2_amount, tele2OcrDigits]);
   const tele2NeedsBg = useMemo(() => run.tele2_amount > 0 && tele2BgDigits === "", [run.tele2_amount, tele2BgDigits]);
 
+  const dnbOcrDigits = useMemo(() => digits(run.dnb_ocr), [run.dnb_ocr]);
+  const dnbBgDigits = useMemo(() => digits(profile.dnbBg ?? ""), [profile.dnbBg]);
+  const dnbAmountEnabled = useMemo(() => dnbOcrDigits !== "", [dnbOcrDigits]);
+  const dnbReady = useMemo(() => run.dnb_amount > 0 && dnbOcrDigits !== "" && dnbBgDigits !== "", [run.dnb_amount, dnbOcrDigits, dnbBgDigits]);
+  const dnbMissingForPayments = useMemo(() => !dnbReady, [dnbReady]);
+  const dnbNeedsOcr = useMemo(() => run.dnb_amount > 0 && dnbOcrDigits === "", [run.dnb_amount, dnbOcrDigits]);
+  const dnbNeedsBg = useMemo(() => run.dnb_amount > 0 && dnbBgDigits === "", [run.dnb_amount, dnbBgDigits]);
+
   const lansOcrDigits = useMemo(() => digits(run.lans_ocr), [run.lans_ocr]);
   const lansBgDigits = useMemo(() => digits(profile.lansforsakringarBg ?? ""), [profile.lansforsakringarBg]);
   const lansAmountEnabled = useMemo(() => lansOcrDigits !== "", [lansOcrDigits]);
@@ -104,13 +114,15 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       const xml = buildPaymentsXml(profile, run);
       if (!xml && tele2NeedsOcr) return { xml: null as string | null, error: "Tele2 OCR is required when Tele2 amount > 0." };
       if (!xml && tele2NeedsBg) return { xml: null as string | null, error: "Tele2 BG is required in Profile when Tele2 amount > 0." };
+      if (!xml && dnbNeedsOcr) return { xml: null as string | null, error: "DNB OCR is required when DNB amount > 0." };
+      if (!xml && dnbNeedsBg) return { xml: null as string | null, error: "DNB BG is required in Profile when DNB amount > 0." };
       if (!xml && lansNeedsBg) return { xml: null as string | null, error: "Länsförsäkringar BG is required in Profile when Länsförsäkringar amount > 0." };
       if (!xml && lansNeedsOcr) return { xml: null as string | null, error: "Länsförsäkringar OCR is required when Länsförsäkringar amount > 0." };
       return { xml, error: null as string | null };
     } catch (e: any) {
       return { xml: null as string | null, error: e?.message ? String(e.message) : "Failed to build payments XML." };
     }
-  }, [profile, run, executionReady, agiReady, momsReady, tele2NeedsOcr, tele2NeedsBg, lansNeedsBg, lansNeedsOcr]);
+  }, [profile, run, executionReady, agiReady, momsReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr]);
 
   const outputs = useMemo(() => {
     const salaryTx = (run.salary_ab > 0 ? 1 : 0) + (run.salary_an > 0 ? 1 : 0);
@@ -119,10 +131,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       (run.avdragen_skatt > 0 ? 1 : 0) +
       (includeMoms && run.moms > 0 ? 1 : 0) +
       (run.tele2_amount > 0 ? 1 : 0) +
+      (run.dnb_amount > 0 ? 1 : 0) +
       (includeLans && run.lans_amount > 0 ? 1 : 0);
 
     const salarySum = run.salary_ab + run.salary_an;
-    const paymentsSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0) + run.tele2_amount + (includeLans ? run.lans_amount : 0);
+    const paymentsSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0) + run.tele2_amount + run.dnb_amount + (includeLans ? run.lans_amount : 0);
 
     return { salaryTx, paymentsTx, salarySum, paymentsSum };
   }, [run, includeMoms, includeLans]);
@@ -159,10 +172,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     const az = parsed.byPersonId.get(azimId);
     const an = parsed.byPersonId.get(aynunId);
 
-    const missing: string[] = [];
-    if (!hasProfile) missing.push("Profile incomplete");
-    if (!az) missing.push("Azim personnummer mapping");
-    if (!an) missing.push("Aynun personnummer mapping");
+    const errors: string[] = [];
+    const info: string[] = [];
+    if (!hasProfile) errors.push("Profile incomplete");
+    if (!azimId) errors.push("Azim personnummer not configured in Profile");
+    else if (!az) info.push("Azim not found in AGI — no salary this period");
+    if (!aynunId) errors.push("Aynun personnummer not configured in Profile");
+    else if (!an) info.push("Aynun not found in AGI — no salary this period");
 
     setRun((r) => ({
       ...r,
@@ -172,10 +188,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       avdragen_skatt: parsed.totalsAvdragenSkatt,
     }));
 
-    if (missing.length) {
-      setStatus({ kind: "warn", text: `AGI loaded (period ${parsed.period ?? "?"}), but missing: ${missing.join(", ")}.` });
+    const periodStr = parsed.period ?? "?";
+    if (errors.length) {
+      setStatus({ kind: "warn", text: `AGI loaded (period ${periodStr}), but: ${errors.join("; ")}.` });
+    } else if (info.length) {
+      setStatus({ kind: "ok", text: `AGI loaded (period ${periodStr}). ${info.join(". ")}.` });
     } else {
-      setStatus({ kind: "ok", text: `AGI loaded (period ${parsed.period ?? "?"}). Salaries + AGI + Avdragen skatt filled.` });
+      setStatus({ kind: "ok", text: `AGI loaded (period ${periodStr}). Salaries + AGI + Avdragen skatt filled.` });
     }
   }
 
@@ -239,6 +258,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     !momsReady ||
     !paymentsResult.xml ||
     tele2MissingForPayments ||
+    dnbMissingForPayments ||
     !lansReadyForPayments;
 
   return (
@@ -350,6 +370,21 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <hr />
 
+          <h3 className="h3">DNB</h3>
+
+          <label>DNB OCR</label>
+          <input value={run.dnb_ocr} placeholder="Digits only" onChange={(e) => setField("dnb_ocr", e.target.value)} />
+
+          <label>DNB AMOUNT</label>
+          <input
+            disabled={!dnbAmountEnabled}
+            value={fmtInputNumber(run.dnb_amount)}
+            onChange={(e) => setField("dnb_amount", toNumber(e.target.value))}
+            inputMode="decimal"
+          />
+
+          <hr />
+
           <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
           {!includeLans ? (
@@ -440,6 +475,24 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           {tele2NeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Tele2 OCR is required when Tele2 amount &gt; 0.
+            </div>
+          )}
+
+          {dnbMissingForPayments && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Payments download is disabled until <b>DNB amount</b> + <b>DNB OCR</b> are provided.
+            </div>
+          )}
+
+          {dnbNeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              DNB BG is required in <b>Profile</b>.
+            </div>
+          )}
+
+          {dnbNeedsOcr && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              DNB OCR is required when DNB amount &gt; 0.
             </div>
           )}
 

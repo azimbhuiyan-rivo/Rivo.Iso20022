@@ -21,6 +21,7 @@ export default function App() {
         profile.debtorBic &&
         profile.skvBg &&
         profile.skvOcr &&
+        profile.dnbBg &&
         profile.employees.azim.personnummer &&
         profile.employees.azim.clearingAccount &&
         profile.employees.aynun.personnummer &&

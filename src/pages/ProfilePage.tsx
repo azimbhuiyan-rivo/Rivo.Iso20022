@@ -28,6 +28,7 @@ export function ProfilePage({ profile, onChange }: Props) {
     if (!p.skvBg) m.push("Skatteverket BG");
     if (!p.skvOcr) m.push("Skatteverket OCR");
     if (!p.tele2Bg) m.push("Tele2 BG");
+    if (!p.dnbBg) m.push("DNB BG");
     if (!p.employees.azim.personnummer) m.push("Azim personnummer");
     if (!p.employees.azim.clearingAccount) m.push("Azim clearing+account");
     if (!p.employees.aynun.personnummer) m.push("Aynun personnummer");
@@ -102,6 +103,9 @@ export function ProfilePage({ profile, onChange }: Props) {
 
             <label>Tele2 BG</label>
             <input disabled={!editing} value={draft.tele2Bg} onChange={(e) => set("tele2Bg", onlyDigits(e.target.value))} />
+
+            <label>DNB BG</label>
+            <input disabled={!editing} value={draft.dnbBg} onChange={(e) => set("dnbBg", onlyDigits(e.target.value))} />
 
             <label>Länsförsäkringar BG</label>
             <input

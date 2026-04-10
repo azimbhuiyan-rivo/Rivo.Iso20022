@@ -12,6 +12,7 @@ export type Profile = {
   skvBg: string;
   skvOcr: string;
   tele2Bg: string;
+  dnbBg: string;
   lansforsakringarBg: string;
   employees: {
     azim: EmployeeProfile;
@@ -28,6 +29,8 @@ export type RunInput = {
   moms: number;
   tele2_amount: number;
   tele2_ocr: string;
+  dnb_amount: number;
+  dnb_ocr: string;
   lans_amount: number;
   lans_ocr: string;
 };

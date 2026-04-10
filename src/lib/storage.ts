@@ -22,6 +22,7 @@ export function defaultProfile(): Profile {
     skvBg: "",
     skvOcr: "",
     tele2Bg: "",
+    dnbBg: "",
     lansforsakringarBg: "",
     employees: {
       azim: { personnummer: "", clearingAccount: "" },

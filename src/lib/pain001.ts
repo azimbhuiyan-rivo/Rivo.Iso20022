@@ -120,6 +120,14 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
     vendorTxs.push({ e2e: `TELE2-${run.executionDate}`, amount: run.tele2_amount, ustrd: `OCR ${ocr}`, name: "Tele2", bg });
   }
 
+  if (run.dnb_amount > 0) {
+    const ocr = digits(run.dnb_ocr);
+    if (!ocr) return null;
+    const bg = digits(profile.dnbBg);
+    if (!bg) return null;
+    vendorTxs.push({ e2e: `DNB-${run.executionDate}`, amount: run.dnb_amount, ustrd: `OCR ${ocr}`, name: "DNB", bg });
+  }
+
   if (run.lans_amount > 0) {
     const ocr = digits(run.lans_ocr);
     if (!ocr) return null;
