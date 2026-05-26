@@ -156,6 +156,27 @@ hr {
   margin: 16px 0;
 }
 
+.section {
+  border: 1px solid #22304a;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.section:last-child { margin-bottom: 0; }
+
+.subsection {
+  border: 1px solid #1c2842;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 10px 0 0;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.section > label:first-child,
+.subsection > label:first-child { margin-top: 0; }
+
 table {
   width: 100%;
   border-collapse: collapse;

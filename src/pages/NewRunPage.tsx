@@ -294,214 +294,228 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
         <div className="col">
           <h2 className="h">NEW RUN</h2>
 
-          <label>EXECUTION DATE</label>
-          <input
-            ref={dateRef}
-            className="dateInput"
-            type="date"
-            value={run.executionDate}
-            onClick={openDatePicker}
-            onFocus={openDatePicker}
-            onChange={(e) => onPickExecutionDate(e.target.value)}
-          />
+          <div className="section">
+            <label>EXECUTION DATE</label>
+            <input
+              ref={dateRef}
+              className="dateInput"
+              type="date"
+              value={run.executionDate}
+              onClick={openDatePicker}
+              onFocus={openDatePicker}
+              onChange={(e) => onPickExecutionDate(e.target.value)}
+            />
 
-          <label>LOAD AGI XML</label>
-          <input type="file" accept=".xml" onChange={(e) => onPickAgi(e.target.files?.[0] ?? null)} />
-          {agiMeta && <div className="small">AGI: {agiMeta.fileName}{agiMeta.period ? ` (period ${agiMeta.period})` : ""}</div>}
+            <label>LOAD AGI XML</label>
+            <input type="file" accept=".xml" onChange={(e) => onPickAgi(e.target.files?.[0] ?? null)} />
+            {agiMeta && <div className="small" style={{ marginTop: 8 }}>AGI: {agiMeta.fileName}{agiMeta.period ? ` (period ${agiMeta.period})` : ""}</div>}
+          </div>
 
-          <hr />
+          <div className="section">
+            <h3 className="h3">SALARIES</h3>
 
-          <h3 className="h3">SALARIES</h3>
+            <div className="subsection">
+              <label>AZIM SALARY (AGI: gross − tax)</label>
+              <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
-          <label>AZIM SALARY (AGI: gross − tax)</label>
-          <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
+              {!includeAdjAb ? (
+                <div className="btnRow">
+                  <button onClick={() => setIncludeAdjAb(true)}>Add Azim net adjustment</button>
+                </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeAdjAb(false);
+                        setAdjAbText("");
+                        setRun((r) => ({ ...r, adj_ab: 0 }));
+                      }}
+                    >
+                      Remove Azim net adjustment
+                    </button>
+                  </div>
 
-          {!includeAdjAb ? (
-            <button onClick={() => setIncludeAdjAb(true)}>Add Azim net adjustment</button>
-          ) : (
-            <>
-              <div className="btnRow" style={{ marginTop: 0 }}>
+                  <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+                  <input
+                    value={adjAbText}
+                    placeholder="0 (e.g. -2128)"
+                    onChange={(e) => {
+                      setAdjAbText(e.target.value);
+                      setField("adj_ab", toNumber(e.target.value));
+                    }}
+                    inputMode="decimal"
+                  />
+
+                  <label>AZIM NET TO PAY</label>
+                  <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
+                </>
+              )}
+            </div>
+
+            <div className="subsection">
+              <label>AYNUN SALARY (AGI: gross − tax)</label>
+              <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
+
+              {!includeAdjAn ? (
+                <div className="btnRow">
+                  <button onClick={() => setIncludeAdjAn(true)}>Add Aynun net adjustment</button>
+                </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeAdjAn(false);
+                        setAdjAnText("");
+                        setRun((r) => ({ ...r, adj_an: 0 }));
+                      }}
+                    >
+                      Remove Aynun net adjustment
+                    </button>
+                  </div>
+
+                  <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+                  <input
+                    value={adjAnText}
+                    placeholder="0 (e.g. -6458)"
+                    onChange={(e) => {
+                      setAdjAnText(e.target.value);
+                      setField("adj_an", toNumber(e.target.value));
+                    }}
+                    inputMode="decimal"
+                  />
+
+                  <label>AYNUN NET TO PAY</label>
+                  <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="section">
+            <h3 className="h3">SKATTEVERKET</h3>
+
+            <label>AVDRAGEN SKATT</label>
+            <input disabled value={fmtInputNumber(run.avdragen_skatt)} inputMode="decimal" />
+
+            <label>ARBETSGIVARAVGIFT</label>
+            <input disabled value={fmtInputNumber(run.agi)} inputMode="decimal" />
+          </div>
+
+          <div className="section">
+            <h3 className="h3">MOMS</h3>
+
+            {!includeMoms ? (
+              <div className="btnRow">
                 <button
-                  className="danger"
                   onClick={() => {
-                    setIncludeAdjAb(false);
-                    setAdjAbText("");
-                    setRun((r) => ({ ...r, adj_ab: 0 }));
-                  }}
-                >
-                  Remove Azim net adjustment
-                </button>
-              </div>
-
-              <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
-              <input
-                value={adjAbText}
-                placeholder="0 (e.g. -2128)"
-                onChange={(e) => {
-                  setAdjAbText(e.target.value);
-                  setField("adj_ab", toNumber(e.target.value));
-                }}
-                inputMode="decimal"
-              />
-
-              <label>AZIM NET TO PAY</label>
-              <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
-            </>
-          )}
-
-          <label>AYNUN SALARY (AGI: gross − tax)</label>
-          <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
-
-          {!includeAdjAn ? (
-            <button onClick={() => setIncludeAdjAn(true)}>Add Aynun net adjustment</button>
-          ) : (
-            <>
-              <div className="btnRow" style={{ marginTop: 0 }}>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    setIncludeAdjAn(false);
-                    setAdjAnText("");
-                    setRun((r) => ({ ...r, adj_an: 0 }));
-                  }}
-                >
-                  Remove Aynun net adjustment
-                </button>
-              </div>
-
-              <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
-              <input
-                value={adjAnText}
-                placeholder="0 (e.g. -6458)"
-                onChange={(e) => {
-                  setAdjAnText(e.target.value);
-                  setField("adj_an", toNumber(e.target.value));
-                }}
-                inputMode="decimal"
-              />
-
-              <label>AYNUN NET TO PAY</label>
-              <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
-            </>
-          )}
-
-          <hr />
-
-          <h3 className="h3">SKATTEVERKET</h3>
-
-          <label>AVDRAGEN SKATT</label>
-          <input disabled value={fmtInputNumber(run.avdragen_skatt)} inputMode="decimal" />
-
-          <label>ARBETSGIVARAVGIFT</label>
-          <input disabled value={fmtInputNumber(run.agi)} inputMode="decimal" />
-
-          <hr />
-
-          <h3 className="h3">MOMS</h3>
-
-          {!includeMoms ? (
-            <button
-              onClick={() => {
-                setIncludeMoms(true);
-                setMomsMeta(null);
-                setRun((r) => ({ ...r, moms: 0 }));
-              }}
-            >
-              Add MOMS
-            </button>
-          ) : (
-            <>
-              <div className="btnRow" style={{ marginTop: 0 }}>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    setIncludeMoms(false);
+                    setIncludeMoms(true);
                     setMomsMeta(null);
                     setRun((r) => ({ ...r, moms: 0 }));
                   }}
                 >
-                  Remove MOMS
+                  Add MOMS
                 </button>
               </div>
+            ) : (
+              <>
+                <div className="btnRow">
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setIncludeMoms(false);
+                      setMomsMeta(null);
+                      setRun((r) => ({ ...r, moms: 0 }));
+                    }}
+                  >
+                    Remove MOMS
+                  </button>
+                </div>
 
-              <label>LOAD MOMS XML</label>
-              <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
-              {momsMeta && <div className="small">MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
+                <label>LOAD MOMS XML</label>
+                <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
+                {momsMeta && <div className="small" style={{ marginTop: 8 }}>MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
 
-              <label>MOMS (from XML)</label>
-              <input disabled value={fmtInputNumber(run.moms)} inputMode="decimal" />
-            </>
-          )}
+                <label>MOMS (from XML)</label>
+                <input disabled value={fmtInputNumber(run.moms)} inputMode="decimal" />
+              </>
+            )}
+          </div>
 
-          <hr />
+          <div className="section">
+            <h3 className="h3">TELE2</h3>
 
-          <h3 className="h3">TELE2</h3>
+            <label>TELE2 OCR</label>
+            <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
 
-          <label>TELE2 OCR</label>
-          <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
+            <label>TELE2 AMOUNT</label>
+            <input
+              disabled={!tele2AmountEnabled}
+              value={fmtInputNumber(run.tele2_amount)}
+              onChange={(e) => setField("tele2_amount", toNumber(e.target.value))}
+              inputMode="decimal"
+            />
+          </div>
 
-          <label>TELE2 AMOUNT</label>
-          <input
-            disabled={!tele2AmountEnabled}
-            value={fmtInputNumber(run.tele2_amount)}
-            onChange={(e) => setField("tele2_amount", toNumber(e.target.value))}
-            inputMode="decimal"
-          />
+          <div className="section">
+            <h3 className="h3">DNB</h3>
 
-          <hr />
+            <label>DNB OCR</label>
+            <input value={run.dnb_ocr} placeholder="Digits only" onChange={(e) => setField("dnb_ocr", e.target.value)} />
 
-          <h3 className="h3">DNB</h3>
+            <label>DNB AMOUNT</label>
+            <input
+              disabled={!dnbAmountEnabled}
+              value={fmtInputNumber(run.dnb_amount)}
+              onChange={(e) => setField("dnb_amount", toNumber(e.target.value))}
+              inputMode="decimal"
+            />
+          </div>
 
-          <label>DNB OCR</label>
-          <input value={run.dnb_ocr} placeholder="Digits only" onChange={(e) => setField("dnb_ocr", e.target.value)} />
+          <div className="section">
+            <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
-          <label>DNB AMOUNT</label>
-          <input
-            disabled={!dnbAmountEnabled}
-            value={fmtInputNumber(run.dnb_amount)}
-            onChange={(e) => setField("dnb_amount", toNumber(e.target.value))}
-            inputMode="decimal"
-          />
-
-          <hr />
-
-          <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
-
-          {!includeLans ? (
-            <button
-              onClick={() => {
-                setIncludeLans(true);
-                setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
-              }}
-            >
-              Add Länsförsäkringar
-            </button>
-          ) : (
-            <>
-              <div className="btnRow" style={{ marginTop: 0 }}>
+            {!includeLans ? (
+              <div className="btnRow">
                 <button
-                  className="danger"
                   onClick={() => {
-                    setIncludeLans(false);
+                    setIncludeLans(true);
                     setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
                   }}
                 >
-                  Remove Länsförsäkringar
+                  Add Länsförsäkringar
                 </button>
               </div>
+            ) : (
+              <>
+                <div className="btnRow">
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setIncludeLans(false);
+                      setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
+                    }}
+                  >
+                    Remove Länsförsäkringar
+                  </button>
+                </div>
 
-              <label>LÄNSFÖRSÄKRINGAR OCR</label>
-              <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
+                <label>LÄNSFÖRSÄKRINGAR OCR</label>
+                <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
 
-              <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
-              <input
-                disabled={!lansAmountEnabled}
-                value={fmtInputNumber(run.lans_amount)}
-                onChange={(e) => setField("lans_amount", toNumber(e.target.value))}
-                inputMode="decimal"
-              />
-            </>
-          )}
+                <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
+                <input
+                  disabled={!lansAmountEnabled}
+                  value={fmtInputNumber(run.lans_amount)}
+                  onChange={(e) => setField("lans_amount", toNumber(e.target.value))}
+                  inputMode="decimal"
+                />
+              </>
+            )}
+          </div>
         </div>
 
         <div className="col">
