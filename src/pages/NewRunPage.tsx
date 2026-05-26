@@ -61,6 +61,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [agiMeta, setAgiMeta] = useState<{ fileName: string; period?: string } | null>(null);
 
+  const [includeAdj, setIncludeAdj] = useState(false);
   const [adjAbText, setAdjAbText] = useState("");
   const [adjAnText, setAdjAnText] = useState("");
 
@@ -237,6 +238,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setRun({ ...RUN_DEFAULT });
     setStatus(null);
     setAgiMeta(null);
+    setIncludeAdj(false);
     setAdjAbText("");
     setAdjAnText("");
     setIncludeMoms(false);
@@ -312,36 +314,56 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <label>AZIM SALARY (AGI: gross − tax)</label>
           <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
-          <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
-          <input
-            value={adjAbText}
-            placeholder="0 (e.g. -2128)"
-            onChange={(e) => {
-              setAdjAbText(e.target.value);
-              setField("adj_ab", toNumber(e.target.value));
-            }}
-            inputMode="decimal"
-          />
-
-          <label>AZIM NET TO PAY</label>
-          <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
-
           <label>AYNUN SALARY (AGI: gross − tax)</label>
           <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
 
-          <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
-          <input
-            value={adjAnText}
-            placeholder="0 (e.g. -6458)"
-            onChange={(e) => {
-              setAdjAnText(e.target.value);
-              setField("adj_an", toNumber(e.target.value));
-            }}
-            inputMode="decimal"
-          />
+          {!includeAdj ? (
+            <button onClick={() => setIncludeAdj(true)}>Add net adjustment</button>
+          ) : (
+            <>
+              <div className="btnRow" style={{ marginTop: 0 }}>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setIncludeAdj(false);
+                    setAdjAbText("");
+                    setAdjAnText("");
+                    setRun((r) => ({ ...r, adj_ab: 0, adj_an: 0 }));
+                  }}
+                >
+                  Remove net adjustment
+                </button>
+              </div>
 
-          <label>AYNUN NET TO PAY</label>
-          <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
+              <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+              <input
+                value={adjAbText}
+                placeholder="0 (e.g. -2128)"
+                onChange={(e) => {
+                  setAdjAbText(e.target.value);
+                  setField("adj_ab", toNumber(e.target.value));
+                }}
+                inputMode="decimal"
+              />
+
+              <label>AZIM NET TO PAY</label>
+              <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
+
+              <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+              <input
+                value={adjAnText}
+                placeholder="0 (e.g. -6458)"
+                onChange={(e) => {
+                  setAdjAnText(e.target.value);
+                  setField("adj_an", toNumber(e.target.value));
+                }}
+                inputMode="decimal"
+              />
+
+              <label>AYNUN NET TO PAY</label>
+              <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
+            </>
+          )}
 
           <hr />
 
