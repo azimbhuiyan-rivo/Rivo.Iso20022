@@ -61,7 +61,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [agiMeta, setAgiMeta] = useState<{ fileName: string; period?: string } | null>(null);
 
-  const [includeAdj, setIncludeAdj] = useState(false);
+  const [includeAdjAb, setIncludeAdjAb] = useState(false);
+  const [includeAdjAn, setIncludeAdjAn] = useState(false);
   const [adjAbText, setAdjAbText] = useState("");
   const [adjAnText, setAdjAnText] = useState("");
 
@@ -238,7 +239,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setRun({ ...RUN_DEFAULT });
     setStatus(null);
     setAgiMeta(null);
-    setIncludeAdj(false);
+    setIncludeAdjAb(false);
+    setIncludeAdjAn(false);
     setAdjAbText("");
     setAdjAnText("");
     setIncludeMoms(false);
@@ -314,24 +316,20 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <label>AZIM SALARY (AGI: gross − tax)</label>
           <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
-          <label>AYNUN SALARY (AGI: gross − tax)</label>
-          <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
-
-          {!includeAdj ? (
-            <button onClick={() => setIncludeAdj(true)}>Add net adjustment</button>
+          {!includeAdjAb ? (
+            <button onClick={() => setIncludeAdjAb(true)}>Add Azim net adjustment</button>
           ) : (
             <>
               <div className="btnRow" style={{ marginTop: 0 }}>
                 <button
                   className="danger"
                   onClick={() => {
-                    setIncludeAdj(false);
+                    setIncludeAdjAb(false);
                     setAdjAbText("");
-                    setAdjAnText("");
-                    setRun((r) => ({ ...r, adj_ab: 0, adj_an: 0 }));
+                    setRun((r) => ({ ...r, adj_ab: 0 }));
                   }}
                 >
-                  Remove net adjustment
+                  Remove Azim net adjustment
                 </button>
               </div>
 
@@ -348,6 +346,28 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
               <label>AZIM NET TO PAY</label>
               <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
+            </>
+          )}
+
+          <label>AYNUN SALARY (AGI: gross − tax)</label>
+          <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
+
+          {!includeAdjAn ? (
+            <button onClick={() => setIncludeAdjAn(true)}>Add Aynun net adjustment</button>
+          ) : (
+            <>
+              <div className="btnRow" style={{ marginTop: 0 }}>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setIncludeAdjAn(false);
+                    setAdjAnText("");
+                    setRun((r) => ({ ...r, adj_an: 0 }));
+                  }}
+                >
+                  Remove Aynun net adjustment
+                </button>
+              </div>
 
               <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
               <input
