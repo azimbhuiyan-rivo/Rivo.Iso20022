@@ -315,12 +315,14 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             <h3 className="h3">SALARIES</h3>
 
             <div className="subsection">
-              <label>AZIM SALARY (AGI: gross − tax)</label>
+              <h3 className="h3">AZIM</h3>
+
+              <label>SALARY (AGI: gross − tax)</label>
               <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
               {!includeAdjAb ? (
                 <div className="btnRow">
-                  <button onClick={() => setIncludeAdjAb(true)}>Add Azim net adjustment</button>
+                  <button onClick={() => setIncludeAdjAb(true)}>Add net adjustment</button>
                 </div>
               ) : (
                 <>
@@ -333,11 +335,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                         setRun((r) => ({ ...r, adj_ab: 0 }));
                       }}
                     >
-                      Remove Azim net adjustment
+                      Remove net adjustment
                     </button>
                   </div>
 
-                  <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+                  <label>NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
                   <input
                     value={adjAbText}
                     placeholder="0 (e.g. -2128)"
@@ -348,19 +350,21 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                     inputMode="decimal"
                   />
 
-                  <label>AZIM NET TO PAY</label>
+                  <label>NET TO PAY</label>
                   <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
                 </>
               )}
             </div>
 
             <div className="subsection">
-              <label>AYNUN SALARY (AGI: gross − tax)</label>
+              <h3 className="h3">AYNUN</h3>
+
+              <label>SALARY (AGI: gross − tax)</label>
               <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
 
               {!includeAdjAn ? (
                 <div className="btnRow">
-                  <button onClick={() => setIncludeAdjAn(true)}>Add Aynun net adjustment</button>
+                  <button onClick={() => setIncludeAdjAn(true)}>Add net adjustment</button>
                 </div>
               ) : (
                 <>
@@ -373,11 +377,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                         setRun((r) => ({ ...r, adj_an: 0 }));
                       }}
                     >
-                      Remove Aynun net adjustment
+                      Remove net adjustment
                     </button>
                   </div>
 
-                  <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+                  <label>NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
                   <input
                     value={adjAnText}
                     placeholder="0 (e.g. -6458)"
@@ -388,7 +392,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                     inputMode="decimal"
                   />
 
-                  <label>AYNUN NET TO PAY</label>
+                  <label>NET TO PAY</label>
                   <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
                 </>
               )}
