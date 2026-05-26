@@ -403,46 +403,46 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
             <label>ARBETSGIVARAVGIFT</label>
             <input disabled value={fmtInputNumber(run.agi)} inputMode="decimal" />
-          </div>
 
-          <div className="section">
-            <h3 className="h3">MOMS</h3>
+            <div className="subsection">
+              <h3 className="h3">MOMS</h3>
 
-            {!includeMoms ? (
-              <div className="btnRow">
-                <button
-                  onClick={() => {
-                    setIncludeMoms(true);
-                    setMomsMeta(null);
-                    setRun((r) => ({ ...r, moms: 0 }));
-                  }}
-                >
-                  Add MOMS
-                </button>
-              </div>
-            ) : (
-              <>
+              {!includeMoms ? (
                 <div className="btnRow">
                   <button
-                    className="danger"
                     onClick={() => {
-                      setIncludeMoms(false);
+                      setIncludeMoms(true);
                       setMomsMeta(null);
                       setRun((r) => ({ ...r, moms: 0 }));
                     }}
                   >
-                    Remove MOMS
+                    Add MOMS
                   </button>
                 </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeMoms(false);
+                        setMomsMeta(null);
+                        setRun((r) => ({ ...r, moms: 0 }));
+                      }}
+                    >
+                      Remove MOMS
+                    </button>
+                  </div>
 
-                <label>LOAD MOMS XML</label>
-                <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
-                {momsMeta && <div className="small" style={{ marginTop: 8 }}>MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
+                  <label>LOAD MOMS XML</label>
+                  <input type="file" accept=".xml" onChange={(e) => onPickMoms(e.target.files?.[0] ?? null)} />
+                  {momsMeta && <div className="small" style={{ marginTop: 8 }}>MOMS: {momsMeta.fileName}{momsMeta.period ? ` (period ${momsMeta.period})` : ""}</div>}
 
-                <label>MOMS (from XML)</label>
-                <input disabled value={fmtInputNumber(run.moms)} inputMode="decimal" />
-              </>
-            )}
+                  <label>MOMS (from XML)</label>
+                  <input disabled value={fmtInputNumber(run.moms)} inputMode="decimal" />
+                </>
+              )}
+            </div>
           </div>
 
           <div className="section">
