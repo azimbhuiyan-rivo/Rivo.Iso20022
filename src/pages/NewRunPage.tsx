@@ -17,6 +17,8 @@ const RUN_DEFAULT: RunInput = {
   executionDate: "",
   salary_ab: 0,
   salary_an: 0,
+  adj_ab: 0,
+  adj_an: 0,
   avdragen_skatt: 0,
   agi: 0,
   moms: 0,
@@ -58,6 +60,9 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [run, setRun] = useState<RunInput>(() => ({ ...RUN_DEFAULT }));
   const [status, setStatus] = useState<{ kind: "ok" | "warn"; text: string } | null>(null);
   const [agiMeta, setAgiMeta] = useState<{ fileName: string; period?: string } | null>(null);
+
+  const [adjAbText, setAdjAbText] = useState("");
+  const [adjAnText, setAdjAnText] = useState("");
 
   const [includeMoms, setIncludeMoms] = useState(false);
   const [momsMeta, setMomsMeta] = useState<{ fileName: string; period?: string; orgNr?: string } | null>(null);
@@ -124,8 +129,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     }
   }, [profile, run, executionReady, agiReady, momsReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr]);
 
+  const netAb = useMemo(() => run.salary_ab + run.adj_ab, [run.salary_ab, run.adj_ab]);
+  const netAn = useMemo(() => run.salary_an + run.adj_an, [run.salary_an, run.adj_an]);
+
   const outputs = useMemo(() => {
-    const salaryTx = (run.salary_ab > 0 ? 1 : 0) + (run.salary_an > 0 ? 1 : 0);
+    const salaryTx = (netAb > 0 ? 1 : 0) + (netAn > 0 ? 1 : 0);
     const paymentsTx =
       (run.agi > 0 ? 1 : 0) +
       (run.avdragen_skatt > 0 ? 1 : 0) +
@@ -134,11 +142,11 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       (run.dnb_amount > 0 ? 1 : 0) +
       (includeLans && run.lans_amount > 0 ? 1 : 0);
 
-    const salarySum = run.salary_ab + run.salary_an;
+    const salarySum = netAb + netAn;
     const paymentsSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0) + run.tele2_amount + run.dnb_amount + (includeLans ? run.lans_amount : 0);
 
     return { salaryTx, paymentsTx, salarySum, paymentsSum };
-  }, [run, includeMoms, includeLans]);
+  }, [run, includeMoms, includeLans, netAb, netAn]);
 
   function setField<K extends keyof RunInput>(key: K, value: RunInput[K]) {
     setRun((r) => ({ ...r, [key]: value }));
@@ -229,6 +237,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setRun({ ...RUN_DEFAULT });
     setStatus(null);
     setAgiMeta(null);
+    setAdjAbText("");
+    setAdjAnText("");
     setIncludeMoms(false);
     setMomsMeta(null);
     setIncludeLans(false);
@@ -299,11 +309,39 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
           <h3 className="h3">SALARIES</h3>
 
-          <label>AZIM SALARY</label>
+          <label>AZIM SALARY (AGI: gross − tax)</label>
           <input disabled value={fmtInputNumber(run.salary_ab)} inputMode="decimal" />
 
-          <label>AYNUN SALARY</label>
+          <label>AZIM NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+          <input
+            value={adjAbText}
+            placeholder="0 (e.g. -2128)"
+            onChange={(e) => {
+              setAdjAbText(e.target.value);
+              setField("adj_ab", toNumber(e.target.value));
+            }}
+            inputMode="decimal"
+          />
+
+          <label>AZIM NET TO PAY</label>
+          <input disabled value={fmtInputNumber(netAb)} inputMode="decimal" />
+
+          <label>AYNUN SALARY (AGI: gross − tax)</label>
           <input disabled value={fmtInputNumber(run.salary_an)} inputMode="decimal" />
+
+          <label>AYNUN NET ADJUSTMENT (payslip, e.g. skuld/förmån)</label>
+          <input
+            value={adjAnText}
+            placeholder="0 (e.g. -6458)"
+            onChange={(e) => {
+              setAdjAnText(e.target.value);
+              setField("adj_an", toNumber(e.target.value));
+            }}
+            inputMode="decimal"
+          />
+
+          <label>AYNUN NET TO PAY</label>
+          <input disabled value={fmtInputNumber(netAn)} inputMode="decimal" />
 
           <hr />
 

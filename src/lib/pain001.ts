@@ -58,13 +58,16 @@ function splitClearingAccount(clearingAccount: string): { clearing: string; acco
 export function buildSalariesXml(profile: Profile, run: RunInput): string | null {
   const txs: Array<{ name: string; clearing: string; account: string; amount: number; e2e: string }> = [];
 
-  if (run.salary_ab > 0) {
+  const netAb = run.salary_ab + run.adj_ab;
+  const netAn = run.salary_an + run.adj_an;
+
+  if (netAb > 0) {
     const { clearing, account } = splitClearingAccount(profile.employees.azim.clearingAccount);
-    txs.push({ name: "Azim Bhuiyan", clearing, account, amount: run.salary_ab, e2e: `SAL-${run.executionDate}-EMP-AB` });
+    txs.push({ name: "Azim Bhuiyan", clearing, account, amount: netAb, e2e: `SAL-${run.executionDate}-EMP-AB` });
   }
-  if (run.salary_an > 0) {
+  if (netAn > 0) {
     const { clearing, account } = splitClearingAccount(profile.employees.aynun.clearingAccount);
-    txs.push({ name: "Aynun Nahar", clearing, account, amount: run.salary_an, e2e: `SAL-${run.executionDate}-EMP-AN` });
+    txs.push({ name: "Aynun Nahar", clearing, account, amount: netAn, e2e: `SAL-${run.executionDate}-EMP-AN` });
   }
 
   if (txs.length === 0) return null;

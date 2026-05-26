@@ -24,6 +24,8 @@ export type RunInput = {
   executionDate: string;
   salary_ab: number;
   salary_an: number;
+  adj_ab: number;
+  adj_an: number;
   avdragen_skatt: number;
   agi: number;
   moms: number;
