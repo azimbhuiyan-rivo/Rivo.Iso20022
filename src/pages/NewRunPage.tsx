@@ -191,8 +191,12 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   }
 
   function openDatePicker() {
-    const el = dateRef.current as any;
-    if (el && typeof el.showPicker === "function") el.showPicker();
+    showPicker(dateRef.current);
+  }
+
+  function showPicker(el: HTMLInputElement | null) {
+    const picker = el as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (picker && typeof picker.showPicker === "function") picker.showPicker();
   }
 
   function onPickExecutionDate(next: string) {
@@ -466,7 +470,14 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             <h3 className="h3">SKATTEVERKET</h3>
 
             <label>EXECUTION DATE (SKATTEVERKET, default 12th next month)</label>
-            <input className="dateInput" type="date" value={run.skvExecutionDate} onChange={(e) => onPickSkvDate(e.target.value)} />
+            <input
+              className="dateInput"
+              type="date"
+              value={run.skvExecutionDate}
+              onClick={(e) => showPicker(e.currentTarget)}
+              onFocus={(e) => showPicker(e.currentTarget)}
+              onChange={(e) => onPickSkvDate(e.target.value)}
+            />
 
             <label>AVDRAGEN SKATT</label>
             <input disabled value={fmtInputNumber(run.avdragen_skatt)} inputMode="decimal" />
@@ -519,7 +530,14 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             <h3 className="h3">PAYMENTS</h3>
 
             <label>EXECUTION DATE (PAYMENTS, default = salary date)</label>
-            <input className="dateInput" type="date" value={run.paymentsExecutionDate} onChange={(e) => onPickPaymentsDate(e.target.value)} />
+            <input
+              className="dateInput"
+              type="date"
+              value={run.paymentsExecutionDate}
+              onClick={(e) => showPicker(e.currentTarget)}
+              onFocus={(e) => showPicker(e.currentTarget)}
+              onChange={(e) => onPickPaymentsDate(e.target.value)}
+            />
           </div>
 
           <div className="section">
