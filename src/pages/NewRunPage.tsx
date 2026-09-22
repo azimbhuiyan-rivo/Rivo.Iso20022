@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { Profile, RunInput } from "../lib/types";
 import { parseAgiXml } from "../lib/agi";
 import { parseMomsXml } from "../lib/moms";
-import { buildPaymentsXml, buildSalariesXml, digits } from "../lib/pain001";
+import { buildPaymentsXml, buildSalariesXml, buildSkatteverketXml, digits } from "../lib/pain001";
 import { downloadTextFile } from "../lib/download";
 import { makeHistoryEntry, type HistoryEntry } from "../lib/storage";
 
@@ -15,6 +15,8 @@ type Props = {
 
 const RUN_DEFAULT: RunInput = {
   executionDate: "",
+  skvExecutionDate: "",
+  paymentsExecutionDate: "",
   salary_ab: 0,
   salary_an: 0,
   adj_ab: 0,
@@ -49,6 +51,16 @@ function minifyXml(xml: string): string {
   return (xml ?? "").replace(/>\s+</g, "><").trim();
 }
 
+function defaultSkvDate(executionDate: string): string {
+  const parts = (executionDate ?? "").split("-");
+  if (parts.length !== 3) return "";
+  const d = new Date(Number(parts[0]), Number(parts[1]), 12);
+  if (d.getDay() === 6) d.setDate(11);
+  if (d.getDay() === 0) d.setDate(10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function isPreferredExecutionDate(iso: string): boolean {
   const parts = (iso ?? "").split("-");
   if (parts.length !== 3) return true;
@@ -70,10 +82,14 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [momsMeta, setMomsMeta] = useState<{ fileName: string; period?: string; orgNr?: string } | null>(null);
 
   const [includeLans, setIncludeLans] = useState(false);
+  const [skvDateTouched, setSkvDateTouched] = useState(false);
+  const [payDateTouched, setPayDateTouched] = useState(false);
 
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const executionReady = useMemo(() => Boolean(run.executionDate && run.executionDate.trim()), [run.executionDate]);
+  const skvDateReady = useMemo(() => Boolean(run.skvExecutionDate && run.skvExecutionDate.trim()), [run.skvExecutionDate]);
+  const payDateReady = useMemo(() => Boolean(run.paymentsExecutionDate && run.paymentsExecutionDate.trim()), [run.paymentsExecutionDate]);
   const agiReady = useMemo(() => Boolean(agiMeta), [agiMeta]);
   const momsReady = useMemo(() => !includeMoms || Boolean(momsMeta), [includeMoms, momsMeta]);
 
@@ -113,10 +129,21 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     }
   }, [profile, run, executionReady, agiReady]);
 
+  const skvXml = useMemo(() => {
+    if (!executionReady) return null;
+    if (!agiReady) return null;
+    if (!momsReady) return null;
+    if (!skvDateReady) return null;
+    try {
+      return buildSkatteverketXml(profile, run);
+    } catch {
+      return null;
+    }
+  }, [profile, run, executionReady, agiReady, momsReady, skvDateReady]);
+
   const paymentsResult = useMemo(() => {
     if (!executionReady) return { xml: null as string | null, error: null as string | null };
-    if (!agiReady) return { xml: null as string | null, error: null as string | null };
-    if (!momsReady) return { xml: null as string | null, error: null as string | null };
+    if (!payDateReady) return { xml: null as string | null, error: null as string | null };
     try {
       const xml = buildPaymentsXml(profile, run);
       if (!xml && tele2NeedsOcr) return { xml: null as string | null, error: "Tele2 OCR is required when Tele2 amount > 0." };
@@ -129,25 +156,21 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     } catch (e: any) {
       return { xml: null as string | null, error: e?.message ? String(e.message) : "Failed to build payments XML." };
     }
-  }, [profile, run, executionReady, agiReady, momsReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr]);
+  }, [profile, run, executionReady, payDateReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr]);
 
   const netAb = useMemo(() => run.salary_ab + run.adj_ab, [run.salary_ab, run.adj_ab]);
   const netAn = useMemo(() => run.salary_an + run.adj_an, [run.salary_an, run.adj_an]);
 
   const outputs = useMemo(() => {
     const salaryTx = (netAb > 0 ? 1 : 0) + (netAn > 0 ? 1 : 0);
-    const paymentsTx =
-      (run.agi > 0 ? 1 : 0) +
-      (run.avdragen_skatt > 0 ? 1 : 0) +
-      (includeMoms && run.moms > 0 ? 1 : 0) +
-      (run.tele2_amount > 0 ? 1 : 0) +
-      (run.dnb_amount > 0 ? 1 : 0) +
-      (includeLans && run.lans_amount > 0 ? 1 : 0);
+    const skvTx = (run.agi > 0 ? 1 : 0) + (run.avdragen_skatt > 0 ? 1 : 0) + (includeMoms && run.moms > 0 ? 1 : 0);
+    const paymentsTx = (run.tele2_amount > 0 ? 1 : 0) + (run.dnb_amount > 0 ? 1 : 0) + (includeLans && run.lans_amount > 0 ? 1 : 0);
 
     const salarySum = netAb + netAn;
-    const paymentsSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0) + run.tele2_amount + run.dnb_amount + (includeLans ? run.lans_amount : 0);
+    const skvSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0);
+    const paymentsSum = run.tele2_amount + run.dnb_amount + (includeLans ? run.lans_amount : 0);
 
-    return { salaryTx, paymentsTx, salarySum, paymentsSum };
+    return { salaryTx, skvTx, paymentsTx, salarySum, skvSum, paymentsSum };
   }, [run, includeMoms, includeLans, netAb, netAn]);
 
   function setField<K extends keyof RunInput>(key: K, value: RunInput[K]) {
@@ -165,7 +188,22 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       if (!ok) return;
       setStatus({ kind: "warn", text: `Non-standard execution date selected: ${next}.` });
     }
-    setField("executionDate", next);
+    setRun((r) => ({
+      ...r,
+      executionDate: next,
+      skvExecutionDate: skvDateTouched && r.skvExecutionDate ? r.skvExecutionDate : defaultSkvDate(next),
+      paymentsExecutionDate: payDateTouched && r.paymentsExecutionDate ? r.paymentsExecutionDate : next,
+    }));
+  }
+
+  function onPickSkvDate(next: string) {
+    setSkvDateTouched(true);
+    setField("skvExecutionDate", next);
+  }
+
+  function onPickPaymentsDate(next: string) {
+    setPayDateTouched(true);
+    setField("paymentsExecutionDate", next);
   }
 
   async function onPickAgi(file: File | null) {
@@ -246,6 +284,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setIncludeMoms(false);
     setMomsMeta(null);
     setIncludeLans(false);
+    setSkvDateTouched(false);
+    setPayDateTouched(false);
   }
 
   function downloadSalaries() {
@@ -253,23 +293,30 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     downloadTextFile(`${run.executionDate}-salaries.xml`, minifyXml(salariesXml));
   }
 
+  function downloadSkatteverket() {
+    if (!skvXml) return;
+    downloadTextFile(`${run.skvExecutionDate}-skatteverket.xml`, minifyXml(skvXml));
+  }
+
   function downloadPayments() {
     if (!paymentsResult.xml) return;
-    downloadTextFile(`${run.executionDate}-payments.xml`, minifyXml(paymentsResult.xml));
+    downloadTextFile(`${run.paymentsExecutionDate}-payments.xml`, minifyXml(paymentsResult.xml));
   }
 
   function saveToHistory() {
     const sal = salariesXml ? minifyXml(salariesXml) : null;
+    const skv = skvXml ? minifyXml(skvXml) : null;
     const pay = paymentsResult.xml ? minifyXml(paymentsResult.xml) : null;
-    const entry = makeHistoryEntry(run, sal, pay, agiMeta?.period);
+    const entry = makeHistoryEntry(run, sal, skv, pay, agiMeta?.period);
     onSaveHistory(entry);
     setStatus({ kind: "ok", text: "Saved to history." });
   }
 
+  const skvDisabled = !executionReady || !agiReady || !momsReady || !skvDateReady || !skvXml;
+
   const paymentsDisabled =
     !executionReady ||
-    !agiReady ||
-    !momsReady ||
+    !payDateReady ||
     !paymentsResult.xml ||
     tele2MissingForPayments ||
     dnbMissingForPayments ||
@@ -287,6 +334,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       {paymentsResult.error && <div className="small warn">{paymentsResult.error}</div>}
 
       {!executionReady && <div className="small warn">Execution date is required.</div>}
+      {executionReady && !skvDateReady && <div className="small warn">Skatteverket execution date is required.</div>}
+      {executionReady && !payDateReady && <div className="small warn">Payments execution date is required.</div>}
       {!agiReady && <div className="small warn">AGI XML is required.</div>}
       {includeMoms && !momsMeta && <div className="small warn">MOMS XML is required when MOMS is added.</div>}
 
@@ -402,6 +451,9 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <div className="section">
             <h3 className="h3">SKATTEVERKET</h3>
 
+            <label>EXECUTION DATE (SKATTEVERKET, default 12th next month)</label>
+            <input className="dateInput" type="date" value={run.skvExecutionDate} onChange={(e) => onPickSkvDate(e.target.value)} />
+
             <label>AVDRAGEN SKATT</label>
             <input disabled value={fmtInputNumber(run.avdragen_skatt)} inputMode="decimal" />
 
@@ -447,6 +499,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                 </>
               )}
             </div>
+          </div>
+
+          <div className="section">
+            <h3 className="h3">PAYMENTS</h3>
+
+            <label>EXECUTION DATE (PAYMENTS, default = salary date)</label>
+            <input className="dateInput" type="date" value={run.paymentsExecutionDate} onChange={(e) => onPickPaymentsDate(e.target.value)} />
           </div>
 
           <div className="section">
@@ -526,14 +585,19 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <h2 className="h">OUTPUTS</h2>
 
           <div className="small">
-            SALARIES: {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
+            SALARIES ({run.executionDate || "date?"}): {outputs.salaryTx} tx — {fmtSek(outputs.salarySum)} SEK
             <br />
-            PAYMENTS: {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
+            SKATTEVERKET ({run.skvExecutionDate || "date?"}): {outputs.skvTx} tx — {fmtSek(outputs.skvSum)} SEK
+            <br />
+            PAYMENTS ({run.paymentsExecutionDate || "date?"}): {outputs.paymentsTx} tx — {fmtSek(outputs.paymentsSum)} SEK
           </div>
 
           <div className="btnRow">
             <button className="primary" onClick={downloadSalaries} disabled={!executionReady || !agiReady || !salariesXml}>
               DOWNLOAD SALARIES
+            </button>
+            <button className="primary" onClick={downloadSkatteverket} disabled={skvDisabled}>
+              DOWNLOAD SKATTEVERKET
             </button>
             <button className="primary" onClick={downloadPayments} disabled={paymentsDisabled}>
               DOWNLOAD PAYMENTS

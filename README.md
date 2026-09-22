@@ -4,22 +4,27 @@ A small, local, browser-based tool to generate **ISO 20022 payment files (pain.0
 
 It focuses on the monthly routine for a Swedish AB:
 - **Salaries file** (one credit transfer per employee)
-- **Payments file** (Skatteverket, Tele2, DNB, Länsförsäkringar — Bankgiro + OCR)
+- **Skatteverket file** (Arbetsgivaravgift, Avdragen skatt, optional MOMS — own execution date)
+- **Payments file** (Tele2, DNB, Länsförsäkringar — Bankgiro + OCR, own execution date)
 - **AGI XML import** to prefill salary + tax amounts
 - Optional **MOMS XML import** to prefill VAT
 > Everything runs **client-side only**. No backend. Data is stored in your browser’s `localStorage`.
 
 ## What it generates
-From **New Run**, the app generates two XML files:
+From **New Run**, the app generates three XML files, each with its own execution date:
 1) **Salaries**
 - File name: `<executionDate>-salaries.xml`
 - One transaction per employee (clearing + account)
 - Employees with 0 salary (not in AGI that period) are automatically skipped
 - Batch header is based on your saved Profile
-2) **Payments**
-- File name: `<executionDate>-payments.xml`
+2) **Skatteverket**
+- File name: `<skvExecutionDate>-skatteverket.xml`
+- Arbetsgivaravgift, Avdragen skatt, optional MOMS (Bankgiro + OCR)
+- Execution date defaults to the 12th of the month after the salary date (moved back to Friday if the 12th is a weekend); editable
+3) **Payments**
+- File name: `<paymentsExecutionDate>-payments.xml`
+- Execution date defaults to the salary execution date; editable
 - Supports:
-  - **Skatteverket** — Arbetsgivaravgift, Avdragen skatt, MOMS (Bankgiro + OCR)
   - **Tele2** (Bankgiro + OCR) — mandatory
   - **DNB** (Bankgiro + OCR) — mandatory, monthly
   - **Länsförsäkringar** (Bankgiro + OCR) — optional, half-yearly
@@ -36,8 +41,9 @@ Schema used in XML:
   - Pick execution date (typically 22–24 of the month)
   - Upload **AGI XML** to auto-fill salary + tax values
   - (Optional) upload **MOMS XML** to auto-fill VAT
+  - Adjust the Skatteverket and Payments execution dates if needed
   - Enter OCR + amount for Tele2, DNB, and optionally Länsförsäkringar
-  - Download the two generated XML files
+  - Download the three generated XML files
 - **History**
   - Stores runs locally
   - Re-download previously generated files
@@ -75,10 +81,11 @@ Notes:
    - Enter OCR + amount for Tele2 and DNB (mandatory), Länsförsäkringar (optional)
    - Download:
      - `<executionDate>-salaries.xml`
-     - `<executionDate>-payments.xml`
+     - `<skvExecutionDate>-skatteverket.xml`
+     - `<paymentsExecutionDate>-payments.xml`
 3) Import into your bank
    - Import the salary file where your bank expects payroll/salary ISO20022
-   - Import the payments file where your bank expects payments ISO20022
+   - Import the Skatteverket and payments files where your bank expects payments ISO20022
 > Always verify totals and references (especially OCR) in the bank UI before signing.
 
 ## Data & security

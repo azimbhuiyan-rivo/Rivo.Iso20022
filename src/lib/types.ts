@@ -22,6 +22,8 @@ export type Profile = {
 
 export type RunInput = {
   executionDate: string;
+  skvExecutionDate: string;
+  paymentsExecutionDate: string;
   salary_ab: number;
   salary_an: number;
   adj_ab: number;

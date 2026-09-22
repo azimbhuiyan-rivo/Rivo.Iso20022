@@ -18,37 +18,47 @@ export function HistoryPage({ history, onClear }: { history: HistoryEntry[]; onC
           <thead>
             <tr>
               <th>Created</th>
-              <th>Exec date</th>
+              <th>Salaries date</th>
+              <th>SKV date</th>
+              <th>Payments date</th>
               <th>AGI period</th>
-              <th>Salaries</th>
-              <th>Payments</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {history.map((h) => (
-              <tr key={h.id}>
-                <td>{h.createdAt}</td>
-                <td>{h.run.executionDate}</td>
-                <td>{h.agiPeriod ?? "-"}</td>
-                <td>{(h.salariesXml ? "Yes" : "No")}</td>
-                <td>{(h.paymentsXml ? "Yes" : "No")}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button
-                    onClick={() => h.salariesXml && downloadTextFile(`${h.run.executionDate}-salaries.xml`, h.salariesXml)}
-                    disabled={!h.salariesXml}
-                  >
-                    Salaries
-                  </button>{" "}
-                  <button
-                    onClick={() => h.paymentsXml && downloadTextFile(`${h.run.executionDate}-payments.xml`, h.paymentsXml)}
-                    disabled={!h.paymentsXml}
-                  >
-                    Payments
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {history.map((h) => {
+              const skvDate = h.run.skvExecutionDate || h.run.executionDate;
+              const payDate = h.run.paymentsExecutionDate || h.run.executionDate;
+              return (
+                <tr key={h.id}>
+                  <td>{h.createdAt}</td>
+                  <td>{h.run.executionDate}</td>
+                  <td>{h.skatteverketXml ? skvDate : "-"}</td>
+                  <td>{h.paymentsXml ? payDate : "-"}</td>
+                  <td>{h.agiPeriod ?? "-"}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => h.salariesXml && downloadTextFile(`${h.run.executionDate}-salaries.xml`, h.salariesXml)}
+                      disabled={!h.salariesXml}
+                    >
+                      Salaries
+                    </button>{" "}
+                    <button
+                      onClick={() => h.skatteverketXml && downloadTextFile(`${skvDate}-skatteverket.xml`, h.skatteverketXml)}
+                      disabled={!h.skatteverketXml}
+                    >
+                      Skatteverket
+                    </button>{" "}
+                    <button
+                      onClick={() => h.paymentsXml && downloadTextFile(`${payDate}-payments.xml`, h.paymentsXml)}
+                      disabled={!h.paymentsXml}
+                    >
+                      Payments
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

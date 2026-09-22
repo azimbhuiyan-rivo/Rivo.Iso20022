@@ -6,6 +6,7 @@ export type HistoryEntry = {
   run: RunInput;
   agiPeriod?: string;
   salariesXml: string | null;
+  skatteverketXml?: string | null;
   paymentsXml: string | null;
 };
 
@@ -79,13 +80,20 @@ export function saveHistory(entries: HistoryEntry[]): void {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
 }
 
-export function makeHistoryEntry(run: RunInput, salariesXml: string | null, paymentsXml: string | null, agiPeriod?: string): HistoryEntry {
+export function makeHistoryEntry(
+  run: RunInput,
+  salariesXml: string | null,
+  skatteverketXml: string | null,
+  paymentsXml: string | null,
+  agiPeriod?: string
+): HistoryEntry {
   return {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     run,
     agiPeriod,
     salariesXml,
+    skatteverketXml,
     paymentsXml,
   };
 }

@@ -2,6 +2,8 @@ import type { Profile, RunInput } from "./types";
 
 const NS = "urn:iso:std:iso:20022:tech:xsd:pain.001.001.03";
 
+type BgTx = { e2e: string; amount: number; ustrd: string; name: string; bg: string };
+
 function esc(s: string): string {
   return (s ?? "")
     .replace(/&/g, "&amp;")
@@ -53,6 +55,42 @@ function grpHdr(p: Profile, msgId: string, nbTxs: number, ctrlSum: number): stri
 function splitClearingAccount(clearingAccount: string): { clearing: string; account: string } {
   const d = digits(clearingAccount);
   return { clearing: d.slice(0, 4), account: d.slice(4) };
+}
+
+function bgPmtInf(p: Profile, pmtInfId: string, executionDate: string, txs: BgTx[]): string {
+  return `<PmtInf>
+<PmtInfId>${esc(pmtInfId)}</PmtInfId>
+<PmtMtd>TRF</PmtMtd>
+<BtchBookg>true</BtchBookg>
+<NbOfTxs>${txs.length}</NbOfTxs>
+<CtrlSum>${amt(sum(txs.map((t) => t.amount)))}</CtrlSum>
+<PmtTpInf><LclInstrm><Prtry>DO</Prtry></LclInstrm></PmtTpInf>
+<ReqdExctnDt>${esc(executionDate)}</ReqdExctnDt>
+${debtorBlock(p)}
+<ChrgBr>SHAR</ChrgBr>
+${txs
+  .map(
+    (t) => `<CdtTrfTxInf>
+<PmtId><InstrId>${esc(t.e2e)}</InstrId><EndToEndId>${esc(t.e2e)}</EndToEndId></PmtId>
+<Amt><InstdAmt Ccy="SEK">${amt(t.amount)}</InstdAmt></Amt>
+<CdtrAgt><FinInstnId><ClrSysMmbId><ClrSysId><Cd>SESBA</Cd></ClrSysId><MmbId>9900</MmbId></ClrSysMmbId></FinInstnId></CdtrAgt>
+<Cdtr><Nm>${esc(t.name)}</Nm></Cdtr>
+<CdtrAcct><Id><Othr><Id>${esc(t.bg)}</Id><SchmeNm><Prtry>BGNR</Prtry></SchmeNm></Othr></Id></CdtrAcct>
+<RmtInf><Ustrd>${esc(t.ustrd)}</Ustrd></RmtInf>
+</CdtTrfTxInf>`
+  )
+  .join("")}
+</PmtInf>`;
+}
+
+function document(p: Profile, msgId: string, txs: BgTx[], pmtInf: string): string {
+  return `<?xml version='1.0' encoding='utf-8'?>
+<Document xmlns="${NS}">
+<CstmrCdtTrfInitn>
+${grpHdr(p, msgId, txs.length, sum(txs.map((t) => t.amount)))}
+${pmtInf}
+</CstmrCdtTrfInitn>
+</Document>`;
 }
 
 export function buildSalariesXml(profile: Profile, run: RunInput): string | null {
@@ -107,20 +145,35 @@ ${body}
 </Document>`;
 }
 
-export function buildPaymentsXml(profile: Profile, run: RunInput): string | null {
-  const skvTxs: Array<{ e2e: string; amount: number; ustrd: string }> = [];
-  const vendorTxs: Array<{ e2e: string; amount: number; ustrd: string; name: string; bg: string }> = [];
+export function buildSkatteverketXml(profile: Profile, run: RunInput): string | null {
+  const date = run.skvExecutionDate;
+  if (!date) return null;
+  const bg = digits(profile.skvBg);
+  if (!bg) return null;
+  const ocr = digits(profile.skvOcr);
 
-  if (run.agi > 0) skvTxs.push({ e2e: `ARBETSGIVARAVGIFT-${run.executionDate}`, amount: run.agi, ustrd: `Arbetsgivaravgift - ${run.executionDate} OCR ${digits(profile.skvOcr)}` });
-  if (run.avdragen_skatt > 0) skvTxs.push({ e2e: `AVDRAGEN-SKATT-${run.executionDate}`, amount: run.avdragen_skatt, ustrd: `SKATT - ${run.executionDate} OCR ${digits(profile.skvOcr)}` });
-  if (run.moms > 0) skvTxs.push({ e2e: `MOMS-${run.executionDate}`, amount: run.moms, ustrd: `MOMS - ${run.executionDate} OCR ${digits(profile.skvOcr)}` });
+  const txs: BgTx[] = [];
+  if (run.agi > 0) txs.push({ e2e: `ARBETSGIVARAVGIFT-${date}`, amount: run.agi, ustrd: `Arbetsgivaravgift - ${date} OCR ${ocr}`, name: "Skatteverket", bg });
+  if (run.avdragen_skatt > 0) txs.push({ e2e: `AVDRAGEN-SKATT-${date}`, amount: run.avdragen_skatt, ustrd: `SKATT - ${date} OCR ${ocr}`, name: "Skatteverket", bg });
+  if (run.moms > 0) txs.push({ e2e: `MOMS-${date}`, amount: run.moms, ustrd: `MOMS - ${date} OCR ${ocr}`, name: "Skatteverket", bg });
+
+  if (txs.length === 0) return null;
+
+  return document(profile, `RIVO-${date}-SKATTEVERKET`, txs, bgPmtInf(profile, `RIVO-${date}-SKV`, date, txs));
+}
+
+export function buildPaymentsXml(profile: Profile, run: RunInput): string | null {
+  const date = run.paymentsExecutionDate;
+  if (!date) return null;
+
+  const txs: BgTx[] = [];
 
   if (run.tele2_amount > 0) {
     const ocr = digits(run.tele2_ocr);
     if (!ocr) return null;
     const bg = digits(profile.tele2Bg);
     if (!bg) return null;
-    vendorTxs.push({ e2e: `TELE2-${run.executionDate}`, amount: run.tele2_amount, ustrd: `OCR ${ocr}`, name: "Tele2", bg });
+    txs.push({ e2e: `TELE2-${date}`, amount: run.tele2_amount, ustrd: `OCR ${ocr}`, name: "Tele2", bg });
   }
 
   if (run.dnb_amount > 0) {
@@ -128,7 +181,7 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
     if (!ocr) return null;
     const bg = digits(profile.dnbBg);
     if (!bg) return null;
-    vendorTxs.push({ e2e: `DNB-${run.executionDate}`, amount: run.dnb_amount, ustrd: `OCR ${ocr}`, name: "DNB", bg });
+    txs.push({ e2e: `DNB-${date}`, amount: run.dnb_amount, ustrd: `OCR ${ocr}`, name: "DNB", bg });
   }
 
   if (run.lans_amount > 0) {
@@ -136,74 +189,10 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
     if (!ocr) return null;
     const bg = digits(profile.lansforsakringarBg);
     if (!bg) return null;
-    vendorTxs.push({ e2e: `LANSF-${run.executionDate}`, amount: run.lans_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
+    txs.push({ e2e: `LANSF-${date}`, amount: run.lans_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
   }
 
-  const nbTxs = skvTxs.length + vendorTxs.length;
-  if (nbTxs === 0) return null;
+  if (txs.length === 0) return null;
 
-  const ctrl = sum([...skvTxs.map((t) => t.amount), ...vendorTxs.map((t) => t.amount)]);
-
-  const skvBlock =
-    skvTxs.length === 0
-      ? ""
-      : `<PmtInf>
-<PmtInfId>RIVO-${esc(run.executionDate)}-SKV</PmtInfId>
-<PmtMtd>TRF</PmtMtd>
-<BtchBookg>true</BtchBookg>
-<NbOfTxs>${skvTxs.length}</NbOfTxs>
-<CtrlSum>${amt(sum(skvTxs.map((t) => t.amount)))}</CtrlSum>
-<PmtTpInf><LclInstrm><Prtry>DO</Prtry></LclInstrm></PmtTpInf>
-<ReqdExctnDt>${esc(run.executionDate)}</ReqdExctnDt>
-${debtorBlock(profile)}
-<ChrgBr>SHAR</ChrgBr>
-${skvTxs
-  .map(
-    (t) => `<CdtTrfTxInf>
-<PmtId><InstrId>${esc(t.e2e)}</InstrId><EndToEndId>${esc(t.e2e)}</EndToEndId></PmtId>
-<Amt><InstdAmt Ccy="SEK">${amt(t.amount)}</InstdAmt></Amt>
-<CdtrAgt><FinInstnId><ClrSysMmbId><ClrSysId><Cd>SESBA</Cd></ClrSysId><MmbId>9900</MmbId></ClrSysMmbId></FinInstnId></CdtrAgt>
-<Cdtr><Nm>Skatteverket</Nm></Cdtr>
-<CdtrAcct><Id><Othr><Id>${esc(digits(profile.skvBg))}</Id><SchmeNm><Prtry>BGNR</Prtry></SchmeNm></Othr></Id></CdtrAcct>
-<RmtInf><Ustrd>${esc(t.ustrd)}</Ustrd></RmtInf>
-</CdtTrfTxInf>`
-  )
-  .join("")}
-</PmtInf>`;
-
-  const vendorBlock =
-    vendorTxs.length === 0
-      ? ""
-      : `<PmtInf>
-<PmtInfId>RIVO-${esc(run.executionDate)}-VENDORS</PmtInfId>
-<PmtMtd>TRF</PmtMtd>
-<BtchBookg>true</BtchBookg>
-<NbOfTxs>${vendorTxs.length}</NbOfTxs>
-<CtrlSum>${amt(sum(vendorTxs.map((t) => t.amount)))}</CtrlSum>
-<PmtTpInf><LclInstrm><Prtry>DO</Prtry></LclInstrm></PmtTpInf>
-<ReqdExctnDt>${esc(run.executionDate)}</ReqdExctnDt>
-${debtorBlock(profile)}
-<ChrgBr>SHAR</ChrgBr>
-${vendorTxs
-  .map(
-    (t) => `<CdtTrfTxInf>
-<PmtId><InstrId>${esc(t.e2e)}</InstrId><EndToEndId>${esc(t.e2e)}</EndToEndId></PmtId>
-<Amt><InstdAmt Ccy="SEK">${amt(t.amount)}</InstdAmt></Amt>
-<CdtrAgt><FinInstnId><ClrSysMmbId><ClrSysId><Cd>SESBA</Cd></ClrSysId><MmbId>9900</MmbId></ClrSysMmbId></FinInstnId></CdtrAgt>
-<Cdtr><Nm>${esc(t.name)}</Nm></Cdtr>
-<CdtrAcct><Id><Othr><Id>${esc(t.bg)}</Id><SchmeNm><Prtry>BGNR</Prtry></SchmeNm></Othr></Id></CdtrAcct>
-<RmtInf><Ustrd>${esc(t.ustrd)}</Ustrd></RmtInf>
-</CdtTrfTxInf>`
-  )
-  .join("")}
-</PmtInf>`;
-
-  return `<?xml version='1.0' encoding='utf-8'?>
-<Document xmlns="${NS}">
-<CstmrCdtTrfInitn>
-${grpHdr(profile, `RIVO-${run.executionDate}-PAYMENTS`, nbTxs, ctrl)}
-${skvBlock}
-${vendorBlock}
-</CstmrCdtTrfInitn>
-</Document>`;
+  return document(profile, `RIVO-${date}-PAYMENTS`, txs, bgPmtInf(profile, `RIVO-${date}-VENDORS`, date, txs));
 }
