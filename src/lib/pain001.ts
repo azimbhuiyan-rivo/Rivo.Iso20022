@@ -184,12 +184,20 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
     txs.push({ e2e: `DNB-${date}`, amount: run.dnb_amount, ustrd: `OCR ${ocr}`, name: "DNB", bg });
   }
 
-  if (run.lans_amount > 0) {
-    const ocr = digits(run.lans_ocr);
+  if (run.lans_foretag_amount > 0) {
+    const ocr = digits(run.lans_foretag_ocr);
     if (!ocr) return null;
-    const bg = digits(profile.lansforsakringarBg);
+    const bg = digits(profile.lansForetagBg);
     if (!bg) return null;
-    txs.push({ e2e: `LANSF-${date}`, amount: run.lans_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
+    txs.push({ e2e: `LANSF-FORETAG-${date}`, amount: run.lans_foretag_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
+  }
+
+  if (run.lans_bil_amount > 0) {
+    const ocr = digits(run.lans_bil_ocr);
+    if (!ocr) return null;
+    const bg = digits(profile.lansBilBg);
+    if (!bg) return null;
+    txs.push({ e2e: `LANSF-BIL-${date}`, amount: run.lans_bil_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
   }
 
   if (txs.length === 0) return null;

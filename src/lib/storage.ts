@@ -24,7 +24,8 @@ export function defaultProfile(): Profile {
     skvOcr: "",
     tele2Bg: "",
     dnbBg: "",
-    lansforsakringarBg: "",
+    lansForetagBg: "",
+    lansBilBg: "",
     employees: {
       azim: { personnummer: "", clearingAccount: "" },
       aynun: { personnummer: "", clearingAccount: "" },
@@ -38,11 +39,12 @@ export function loadProfile(): Profile {
     if (!raw) return defaultProfile();
 
     const base = defaultProfile();
-    const parsed = JSON.parse(raw) as Partial<Profile>;
+    const { lansforsakringarBg, ...parsed } = JSON.parse(raw) as Partial<Profile> & { lansforsakringarBg?: string };
 
     return {
       ...base,
       ...parsed,
+      lansBilBg: parsed.lansBilBg || lansforsakringarBg || "",
       employees: {
         ...base.employees,
         ...(parsed.employees ?? {}),

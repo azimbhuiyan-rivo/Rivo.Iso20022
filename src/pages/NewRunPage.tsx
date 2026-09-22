@@ -28,8 +28,10 @@ const RUN_DEFAULT: RunInput = {
   tele2_ocr: "",
   dnb_amount: 0,
   dnb_ocr: "",
-  lans_amount: 0,
-  lans_ocr: "",
+  lans_foretag_amount: 0,
+  lans_foretag_ocr: "",
+  lans_bil_amount: 0,
+  lans_bil_ocr: "",
 };
 
 function toNumber(v: string): number {
@@ -81,7 +83,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const [includeMoms, setIncludeMoms] = useState(false);
   const [momsMeta, setMomsMeta] = useState<{ fileName: string; period?: string; orgNr?: string } | null>(null);
 
-  const [includeLans, setIncludeLans] = useState(false);
+  const [includeLansForetag, setIncludeLansForetag] = useState(false);
+  const [includeLansBil, setIncludeLansBil] = useState(false);
   const [skvDateTouched, setSkvDateTouched] = useState(false);
   const [payDateTouched, setPayDateTouched] = useState(false);
 
@@ -109,15 +112,21 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const dnbNeedsOcr = useMemo(() => run.dnb_amount > 0 && dnbOcrDigits === "", [run.dnb_amount, dnbOcrDigits]);
   const dnbNeedsBg = useMemo(() => run.dnb_amount > 0 && dnbBgDigits === "", [run.dnb_amount, dnbBgDigits]);
 
-  const lansOcrDigits = useMemo(() => digits(run.lans_ocr), [run.lans_ocr]);
-  const lansBgDigits = useMemo(() => digits(profile.lansforsakringarBg ?? ""), [profile.lansforsakringarBg]);
-  const lansAmountEnabled = useMemo(() => lansOcrDigits !== "", [lansOcrDigits]);
-  const lansNeedsOcr = useMemo(() => includeLans && run.lans_amount > 0 && lansOcrDigits === "", [includeLans, run.lans_amount, lansOcrDigits]);
-  const lansNeedsBg = useMemo(() => includeLans && run.lans_amount > 0 && lansBgDigits === "", [includeLans, run.lans_amount, lansBgDigits]);
-  const lansReadyForPayments = useMemo(
-    () => !includeLans || run.lans_amount === 0 || (lansOcrDigits !== "" && lansBgDigits !== ""),
-    [includeLans, run.lans_amount, lansOcrDigits, lansBgDigits]
-  );
+  const lansForetagOcrDigits = useMemo(() => digits(run.lans_foretag_ocr), [run.lans_foretag_ocr]);
+  const lansForetagBgDigits = useMemo(() => digits(profile.lansForetagBg ?? ""), [profile.lansForetagBg]);
+  const lansForetagAmountEnabled = useMemo(() => lansForetagOcrDigits !== "", [lansForetagOcrDigits]);
+  const lansForetagNeedsOcr = useMemo(() => includeLansForetag && run.lans_foretag_amount > 0 && lansForetagOcrDigits === "", [includeLansForetag, run.lans_foretag_amount, lansForetagOcrDigits]);
+  const lansForetagNeedsBg = useMemo(() => includeLansForetag && run.lans_foretag_amount > 0 && lansForetagBgDigits === "", [includeLansForetag, run.lans_foretag_amount, lansForetagBgDigits]);
+
+  const lansBilOcrDigits = useMemo(() => digits(run.lans_bil_ocr), [run.lans_bil_ocr]);
+  const lansBilBgDigits = useMemo(() => digits(profile.lansBilBg ?? ""), [profile.lansBilBg]);
+  const lansBilAmountEnabled = useMemo(() => lansBilOcrDigits !== "", [lansBilOcrDigits]);
+  const lansBilNeedsOcr = useMemo(() => includeLansBil && run.lans_bil_amount > 0 && lansBilOcrDigits === "", [includeLansBil, run.lans_bil_amount, lansBilOcrDigits]);
+  const lansBilNeedsBg = useMemo(() => includeLansBil && run.lans_bil_amount > 0 && lansBilBgDigits === "", [includeLansBil, run.lans_bil_amount, lansBilBgDigits]);
+
+  const lansNeedsOcr = lansForetagNeedsOcr || lansBilNeedsOcr;
+  const lansNeedsBg = lansForetagNeedsBg || lansBilNeedsBg;
+  const lansReadyForPayments = !lansNeedsOcr && !lansNeedsBg;
 
   const salariesXml = useMemo(() => {
     if (!executionReady) return null;
@@ -164,14 +173,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const outputs = useMemo(() => {
     const salaryTx = (netAb > 0 ? 1 : 0) + (netAn > 0 ? 1 : 0);
     const skvTx = (run.agi > 0 ? 1 : 0) + (run.avdragen_skatt > 0 ? 1 : 0) + (includeMoms && run.moms > 0 ? 1 : 0);
-    const paymentsTx = (run.tele2_amount > 0 ? 1 : 0) + (run.dnb_amount > 0 ? 1 : 0) + (includeLans && run.lans_amount > 0 ? 1 : 0);
+    const paymentsTx =
+      (run.tele2_amount > 0 ? 1 : 0) +
+      (run.dnb_amount > 0 ? 1 : 0) +
+      (includeLansForetag && run.lans_foretag_amount > 0 ? 1 : 0) +
+      (includeLansBil && run.lans_bil_amount > 0 ? 1 : 0);
 
     const salarySum = netAb + netAn;
     const skvSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0);
-    const paymentsSum = run.tele2_amount + run.dnb_amount + (includeLans ? run.lans_amount : 0);
+    const paymentsSum = run.tele2_amount + run.dnb_amount + (includeLansForetag ? run.lans_foretag_amount : 0) + (includeLansBil ? run.lans_bil_amount : 0);
 
     return { salaryTx, skvTx, paymentsTx, salarySum, skvSum, paymentsSum };
-  }, [run, includeMoms, includeLans, netAb, netAn]);
+  }, [run, includeMoms, includeLansForetag, includeLansBil, netAb, netAn]);
 
   function setField<K extends keyof RunInput>(key: K, value: RunInput[K]) {
     setRun((r) => ({ ...r, [key]: value }));
@@ -283,7 +296,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setAdjAnText("");
     setIncludeMoms(false);
     setMomsMeta(null);
-    setIncludeLans(false);
+    setIncludeLansForetag(false);
+    setIncludeLansBil(false);
     setSkvDateTouched(false);
     setPayDateTouched(false);
   }
@@ -541,43 +555,89 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           <div className="section">
             <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
-            {!includeLans ? (
-              <div className="btnRow">
-                <button
-                  onClick={() => {
-                    setIncludeLans(true);
-                    setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
-                  }}
-                >
-                  Add Länsförsäkringar
-                </button>
-              </div>
-            ) : (
-              <>
+            <div className="subsection">
+              <h3 className="h3">FÖRETAGSFÖRSÄKRING</h3>
+
+              {!includeLansForetag ? (
                 <div className="btnRow">
                   <button
-                    className="danger"
                     onClick={() => {
-                      setIncludeLans(false);
-                      setRun((r) => ({ ...r, lans_amount: 0, lans_ocr: "" }));
+                      setIncludeLansForetag(true);
+                      setRun((r) => ({ ...r, lans_foretag_amount: 0, lans_foretag_ocr: "" }));
                     }}
                   >
-                    Remove Länsförsäkringar
+                    Add Företagsförsäkring
                   </button>
                 </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeLansForetag(false);
+                        setRun((r) => ({ ...r, lans_foretag_amount: 0, lans_foretag_ocr: "" }));
+                      }}
+                    >
+                      Remove Företagsförsäkring
+                    </button>
+                  </div>
 
-                <label>LÄNSFÖRSÄKRINGAR OCR</label>
-                <input value={run.lans_ocr} placeholder="Digits only" onChange={(e) => setField("lans_ocr", e.target.value)} />
+                  <label>FÖRETAGSFÖRSÄKRING OCR</label>
+                  <input value={run.lans_foretag_ocr} placeholder="Digits only" onChange={(e) => setField("lans_foretag_ocr", e.target.value)} />
 
-                <label>LÄNSFÖRSÄKRINGAR AMOUNT</label>
-                <input
-                  disabled={!lansAmountEnabled}
-                  value={fmtInputNumber(run.lans_amount)}
-                  onChange={(e) => setField("lans_amount", toNumber(e.target.value))}
-                  inputMode="decimal"
-                />
-              </>
-            )}
+                  <label>FÖRETAGSFÖRSÄKRING AMOUNT</label>
+                  <input
+                    disabled={!lansForetagAmountEnabled}
+                    value={fmtInputNumber(run.lans_foretag_amount)}
+                    onChange={(e) => setField("lans_foretag_amount", toNumber(e.target.value))}
+                    inputMode="decimal"
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="subsection">
+              <h3 className="h3">BILFÖRSÄKRING</h3>
+
+              {!includeLansBil ? (
+                <div className="btnRow">
+                  <button
+                    onClick={() => {
+                      setIncludeLansBil(true);
+                      setRun((r) => ({ ...r, lans_bil_amount: 0, lans_bil_ocr: "" }));
+                    }}
+                  >
+                    Add Bilförsäkring
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeLansBil(false);
+                        setRun((r) => ({ ...r, lans_bil_amount: 0, lans_bil_ocr: "" }));
+                      }}
+                    >
+                      Remove Bilförsäkring
+                    </button>
+                  </div>
+
+                  <label>BILFÖRSÄKRING OCR</label>
+                  <input value={run.lans_bil_ocr} placeholder="Digits only" onChange={(e) => setField("lans_bil_ocr", e.target.value)} />
+
+                  <label>BILFÖRSÄKRING AMOUNT</label>
+                  <input
+                    disabled={!lansBilAmountEnabled}
+                    value={fmtInputNumber(run.lans_bil_amount)}
+                    onChange={(e) => setField("lans_bil_amount", toNumber(e.target.value))}
+                    inputMode="decimal"
+                  />
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -658,15 +718,27 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             </div>
           )}
 
-          {includeLans && lansNeedsBg && (
+          {lansForetagNeedsBg && (
             <div className="small warn" style={{ marginTop: 12 }}>
-              Länsförsäkringar BG is required in <b>Profile</b> when Länsförsäkringar amount &gt; 0.
+              Länsförsäkringar Företagsförsäkring BG is required in <b>Profile</b>.
             </div>
           )}
 
-          {includeLans && lansNeedsOcr && (
+          {lansForetagNeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
-              Länsförsäkringar OCR is required when Länsförsäkringar amount &gt; 0.
+              Företagsförsäkring OCR is required when its amount &gt; 0.
+            </div>
+          )}
+
+          {lansBilNeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Länsförsäkringar Bilförsäkring BG is required in <b>Profile</b>.
+            </div>
+          )}
+
+          {lansBilNeedsOcr && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Bilförsäkring OCR is required when its amount &gt; 0.
             </div>
           )}
 

@@ -27,7 +27,7 @@ From **New Run**, the app generates three XML files, each with its own execution
 - Supports:
   - **Tele2** (Bankgiro + OCR) — mandatory
   - **DNB** (Bankgiro + OCR) — mandatory, monthly
-  - **Länsförsäkringar** (Bankgiro + OCR) — optional, half-yearly
+  - **Länsförsäkringar** — Företagsförsäkring and/or Bilförsäkring, each optional, each paid to its own Bankgiro (set in Profile) + OCR
 
 Schema used in XML:
 - `urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`
@@ -35,14 +35,14 @@ Schema used in XML:
 ## App structure
 - **Profile**
   - Company/initiator + debtor account settings (IBAN/BIC)
-  - Default payees (Skatteverket BG/OCR, Tele2 BG, DNB BG, Länsförsäkringar BG)
+  - Default payees (Skatteverket BG/OCR, Tele2 BG, DNB BG, Länsförsäkringar BG for Företagsförsäkring and for Bilförsäkring)
   - Employees registry (personnummer → clearing+account)
 - **New Run**
   - Pick execution date (typically 22–24 of the month)
   - Upload **AGI XML** to auto-fill salary + tax values
   - (Optional) upload **MOMS XML** to auto-fill VAT
   - Adjust the Skatteverket and Payments execution dates if needed
-  - Enter OCR + amount for Tele2, DNB, and optionally Länsförsäkringar
+  - Enter OCR + amount for Tele2, DNB, and optionally Länsförsäkringar (Företagsförsäkring, Bilförsäkring)
   - Download the three generated XML files
 - **History**
   - Stores runs locally
@@ -71,7 +71,7 @@ Notes:
      - Skatteverket Bankgiro + default OCR
      - Tele2 Bankgiro
      - DNB Bankgiro
-     - (Optional) Länsförsäkringar Bankgiro
+     - (Optional) Länsförsäkringar Bankgiro — Företagsförsäkring and/or Bilförsäkring
    - Add employees:
      - Personnummer, clearing+account
 2) Go to **New Run**
