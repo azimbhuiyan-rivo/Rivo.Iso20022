@@ -558,43 +558,39 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
               onFocus={(e) => showPicker(e.currentTarget)}
               onChange={(e) => onPickPaymentsDate(e.target.value)}
             />
-          </div>
-
-          <div className="section">
-            <h3 className="h3">TELE2</h3>
-
-            <label>TELE2 OCR</label>
-            <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
-
-            <label>TELE2 AMOUNT</label>
-            <input
-              disabled={!tele2AmountEnabled}
-              value={fmtInputNumber(run.tele2_amount)}
-              onChange={(e) => setField("tele2_amount", toNumber(e.target.value))}
-              inputMode="decimal"
-            />
-          </div>
-
-          <div className="section">
-            <h3 className="h3">DNB</h3>
-
-            <label>DNB OCR</label>
-            <input value={run.dnb_ocr} placeholder="Digits only" onChange={(e) => setField("dnb_ocr", e.target.value)} />
-
-            <label>DNB AMOUNT</label>
-            <input
-              disabled={!dnbAmountEnabled}
-              value={fmtInputNumber(run.dnb_amount)}
-              onChange={(e) => setField("dnb_amount", toNumber(e.target.value))}
-              inputMode="decimal"
-            />
-          </div>
-
-          <div className="section">
-            <h3 className="h3">TRANSPORTSTYRELSEN</h3>
 
             <div className="subsection">
-              <h3 className="h3">TRÄNGSELSKATT</h3>
+              <h3 className="h3">TELE2</h3>
+
+              <label>TELE2 OCR</label>
+              <input value={run.tele2_ocr} placeholder="Digits only" onChange={(e) => setField("tele2_ocr", e.target.value)} />
+
+              <label>TELE2 AMOUNT</label>
+              <input
+                disabled={!tele2AmountEnabled}
+                value={fmtInputNumber(run.tele2_amount)}
+                onChange={(e) => setField("tele2_amount", toNumber(e.target.value))}
+                inputMode="decimal"
+              />
+            </div>
+
+            <div className="subsection">
+              <h3 className="h3">DNB</h3>
+
+              <label>DNB OCR</label>
+              <input value={run.dnb_ocr} placeholder="Digits only" onChange={(e) => setField("dnb_ocr", e.target.value)} />
+
+              <label>DNB AMOUNT</label>
+              <input
+                disabled={!dnbAmountEnabled}
+                value={fmtInputNumber(run.dnb_amount)}
+                onChange={(e) => setField("dnb_amount", toNumber(e.target.value))}
+                inputMode="decimal"
+              />
+            </div>
+
+            <div className="subsection">
+              <h3 className="h3">TRANSPORTSTYRELSEN</h3>
 
               {!includeTransport ? (
                 <div className="btnRow">
@@ -634,92 +630,93 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
                 </>
               )}
             </div>
-          </div>
-          <div className="section">
-            <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
             <div className="subsection">
-              <h3 className="h3">FÖRETAGSFÖRSÄKRING</h3>
+              <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
-              {!includeLansForetag ? (
-                <div className="btnRow">
-                  <button
-                    onClick={() => {
-                      setIncludeLansForetag(true);
-                      setRun((r) => ({ ...r, lans_foretag_amount: 0, lans_foretag_ocr: "" }));
-                    }}
-                  >
-                    Add Företagsförsäkring
-                  </button>
-                </div>
-              ) : (
-                <>
+              <div className="subsection">
+                <h3 className="h3">FÖRETAGSFÖRSÄKRING</h3>
+
+                {!includeLansForetag ? (
                   <div className="btnRow">
                     <button
-                      className="danger"
                       onClick={() => {
-                        setIncludeLansForetag(false);
+                        setIncludeLansForetag(true);
                         setRun((r) => ({ ...r, lans_foretag_amount: 0, lans_foretag_ocr: "" }));
                       }}
                     >
-                      Remove Företagsförsäkring
+                      Add Företagsförsäkring
                     </button>
                   </div>
+                ) : (
+                  <>
+                    <div className="btnRow">
+                      <button
+                        className="danger"
+                        onClick={() => {
+                          setIncludeLansForetag(false);
+                          setRun((r) => ({ ...r, lans_foretag_amount: 0, lans_foretag_ocr: "" }));
+                        }}
+                      >
+                        Remove Företagsförsäkring
+                      </button>
+                    </div>
 
-                  <label>FÖRETAGSFÖRSÄKRING OCR</label>
-                  <input value={run.lans_foretag_ocr} placeholder="Digits only" onChange={(e) => setField("lans_foretag_ocr", e.target.value)} />
+                    <label>FÖRETAGSFÖRSÄKRING OCR</label>
+                    <input value={run.lans_foretag_ocr} placeholder="Digits only" onChange={(e) => setField("lans_foretag_ocr", e.target.value)} />
 
-                  <label>FÖRETAGSFÖRSÄKRING AMOUNT</label>
-                  <input
-                    disabled={!lansForetagAmountEnabled}
-                    value={fmtInputNumber(run.lans_foretag_amount)}
-                    onChange={(e) => setField("lans_foretag_amount", toNumber(e.target.value))}
-                    inputMode="decimal"
-                  />
-                </>
-              )}
-            </div>
+                    <label>FÖRETAGSFÖRSÄKRING AMOUNT</label>
+                    <input
+                      disabled={!lansForetagAmountEnabled}
+                      value={fmtInputNumber(run.lans_foretag_amount)}
+                      onChange={(e) => setField("lans_foretag_amount", toNumber(e.target.value))}
+                      inputMode="decimal"
+                    />
+                  </>
+                )}
+              </div>
 
-            <div className="subsection">
-              <h3 className="h3">BILFÖRSÄKRING</h3>
+              <div className="subsection">
+                <h3 className="h3">BILFÖRSÄKRING</h3>
 
-              {!includeLansBil ? (
-                <div className="btnRow">
-                  <button
-                    onClick={() => {
-                      setIncludeLansBil(true);
-                      setRun((r) => ({ ...r, lans_bil_amount: 0, lans_bil_ocr: "" }));
-                    }}
-                  >
-                    Add Bilförsäkring
-                  </button>
-                </div>
-              ) : (
-                <>
+                {!includeLansBil ? (
                   <div className="btnRow">
                     <button
-                      className="danger"
                       onClick={() => {
-                        setIncludeLansBil(false);
+                        setIncludeLansBil(true);
                         setRun((r) => ({ ...r, lans_bil_amount: 0, lans_bil_ocr: "" }));
                       }}
                     >
-                      Remove Bilförsäkring
+                      Add Bilförsäkring
                     </button>
                   </div>
+                ) : (
+                  <>
+                    <div className="btnRow">
+                      <button
+                        className="danger"
+                        onClick={() => {
+                          setIncludeLansBil(false);
+                          setRun((r) => ({ ...r, lans_bil_amount: 0, lans_bil_ocr: "" }));
+                        }}
+                      >
+                        Remove Bilförsäkring
+                      </button>
+                    </div>
 
-                  <label>BILFÖRSÄKRING OCR</label>
-                  <input value={run.lans_bil_ocr} placeholder="Digits only" onChange={(e) => setField("lans_bil_ocr", e.target.value)} />
+                    <label>BILFÖRSÄKRING OCR</label>
+                    <input value={run.lans_bil_ocr} placeholder="Digits only" onChange={(e) => setField("lans_bil_ocr", e.target.value)} />
 
-                  <label>BILFÖRSÄKRING AMOUNT</label>
-                  <input
-                    disabled={!lansBilAmountEnabled}
-                    value={fmtInputNumber(run.lans_bil_amount)}
-                    onChange={(e) => setField("lans_bil_amount", toNumber(e.target.value))}
-                    inputMode="decimal"
-                  />
-                </>
-              )}
+                    <label>BILFÖRSÄKRING AMOUNT</label>
+                    <input
+                      disabled={!lansBilAmountEnabled}
+                      value={fmtInputNumber(run.lans_bil_amount)}
+                      onChange={(e) => setField("lans_bil_amount", toNumber(e.target.value))}
+                      inputMode="decimal"
+                    />
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
