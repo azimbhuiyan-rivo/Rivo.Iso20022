@@ -591,6 +591,51 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           </div>
 
           <div className="section">
+            <h3 className="h3">TRANSPORTSTYRELSEN</h3>
+
+            <div className="subsection">
+              <h3 className="h3">TRÄNGSELSKATT</h3>
+
+              {!includeTransport ? (
+                <div className="btnRow">
+                  <button
+                    onClick={() => {
+                      setIncludeTransport(true);
+                      setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
+                    }}
+                  >
+                    Add Trängselskatt
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeTransport(false);
+                        setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
+                      }}
+                    >
+                      Remove Trängselskatt
+                    </button>
+                  </div>
+
+                  <label>TRÄNGSELSKATT OCR</label>
+                  <input value={run.transport_ocr} placeholder="Digits only" onChange={(e) => setField("transport_ocr", e.target.value)} />
+
+                  <label>TRÄNGSELSKATT AMOUNT</label>
+                  <input
+                    disabled={!transportAmountEnabled}
+                    value={fmtInputNumber(run.transport_amount)}
+                    onChange={(e) => setField("transport_amount", toNumber(e.target.value))}
+                    inputMode="decimal"
+                  />
+                </>
+              )}
+            </div>
+          </div>
+          <div className="section">
             <h3 className="h3">LÄNSFÖRSÄKRINGAR</h3>
 
             <div className="subsection">
@@ -678,51 +723,6 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             </div>
           </div>
 
-          <div className="section">
-            <h3 className="h3">TRANSPORTSTYRELSEN</h3>
-
-            <div className="subsection">
-              <h3 className="h3">TRÄNGSELSKATT</h3>
-
-              {!includeTransport ? (
-                <div className="btnRow">
-                  <button
-                    onClick={() => {
-                      setIncludeTransport(true);
-                      setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
-                    }}
-                  >
-                    Add Trängselskatt
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="btnRow">
-                    <button
-                      className="danger"
-                      onClick={() => {
-                        setIncludeTransport(false);
-                        setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
-                      }}
-                    >
-                      Remove Trängselskatt
-                    </button>
-                  </div>
-
-                  <label>TRÄNGSELSKATT OCR</label>
-                  <input value={run.transport_ocr} placeholder="Digits only" onChange={(e) => setField("transport_ocr", e.target.value)} />
-
-                  <label>TRÄNGSELSKATT AMOUNT</label>
-                  <input
-                    disabled={!transportAmountEnabled}
-                    value={fmtInputNumber(run.transport_amount)}
-                    onChange={(e) => setField("transport_amount", toNumber(e.target.value))}
-                    inputMode="decimal"
-                  />
-                </>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="col">
@@ -802,6 +802,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
             </div>
           )}
 
+          {transportNeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Transportstyrelsen BG is required in <b>Profile</b>.
+            </div>
+          )}
+
+          {transportNeedsOcr && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Trängselskatt OCR is required when its amount &gt; 0.
+            </div>
+          )}
+
           {lansForetagNeedsBg && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Länsförsäkringar Företagsförsäkring BG is required in <b>Profile</b>.
@@ -823,18 +835,6 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           {lansBilNeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Bilförsäkring OCR is required when its amount &gt; 0.
-            </div>
-          )}
-
-          {transportNeedsBg && (
-            <div className="small warn" style={{ marginTop: 12 }}>
-              Transportstyrelsen BG is required in <b>Profile</b>.
-            </div>
-          )}
-
-          {transportNeedsOcr && (
-            <div className="small warn" style={{ marginTop: 12 }}>
-              Trängselskatt OCR is required when its amount &gt; 0.
             </div>
           )}
 
