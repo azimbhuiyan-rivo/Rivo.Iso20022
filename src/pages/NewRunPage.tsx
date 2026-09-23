@@ -364,7 +364,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     <div className="card">
       <style>{`
         .dateInput { color-scheme: dark; cursor: pointer; }
-        .dateInput::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .9; }
+        .dateInput::-webkit-calendar-picker-indicator { filter: none; opacity: 1; }
       `}</style>
 
       {status?.kind === "warn" && <div className="small warn">{status.text}</div>}
