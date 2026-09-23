@@ -32,6 +32,8 @@ const RUN_DEFAULT: RunInput = {
   lans_foretag_ocr: "",
   lans_bil_amount: 0,
   lans_bil_ocr: "",
+  transport_amount: 0,
+  transport_ocr: "",
 };
 
 function toNumber(v: string): number {
@@ -85,6 +87,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
 
   const [includeLansForetag, setIncludeLansForetag] = useState(false);
   const [includeLansBil, setIncludeLansBil] = useState(false);
+  const [includeTransport, setIncludeTransport] = useState(false);
   const [skvDateTouched, setSkvDateTouched] = useState(false);
   const [payDateTouched, setPayDateTouched] = useState(false);
 
@@ -128,6 +131,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
   const lansNeedsBg = lansForetagNeedsBg || lansBilNeedsBg;
   const lansReadyForPayments = !lansNeedsOcr && !lansNeedsBg;
 
+  const transportOcrDigits = useMemo(() => digits(run.transport_ocr), [run.transport_ocr]);
+  const transportBgDigits = useMemo(() => digits(profile.transportstyrelsenBg ?? ""), [profile.transportstyrelsenBg]);
+  const transportAmountEnabled = useMemo(() => transportOcrDigits !== "", [transportOcrDigits]);
+  const transportNeedsOcr = useMemo(() => includeTransport && run.transport_amount > 0 && transportOcrDigits === "", [includeTransport, run.transport_amount, transportOcrDigits]);
+  const transportNeedsBg = useMemo(() => includeTransport && run.transport_amount > 0 && transportBgDigits === "", [includeTransport, run.transport_amount, transportBgDigits]);
+  const transportReadyForPayments = !transportNeedsOcr && !transportNeedsBg;
+
   const salariesXml = useMemo(() => {
     if (!executionReady) return null;
     if (!agiReady) return null;
@@ -161,11 +171,13 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       if (!xml && dnbNeedsBg) return { xml: null as string | null, error: "DNB BG is required in Profile when DNB amount > 0." };
       if (!xml && lansNeedsBg) return { xml: null as string | null, error: "Länsförsäkringar BG is required in Profile when Länsförsäkringar amount > 0." };
       if (!xml && lansNeedsOcr) return { xml: null as string | null, error: "Länsförsäkringar OCR is required when Länsförsäkringar amount > 0." };
+      if (!xml && transportNeedsBg) return { xml: null as string | null, error: "Transportstyrelsen BG is required in Profile when Trängselskatt amount > 0." };
+      if (!xml && transportNeedsOcr) return { xml: null as string | null, error: "Trängselskatt OCR is required when Trängselskatt amount > 0." };
       return { xml, error: null as string | null };
     } catch (e: any) {
       return { xml: null as string | null, error: e?.message ? String(e.message) : "Failed to build payments XML." };
     }
-  }, [profile, run, executionReady, payDateReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr]);
+  }, [profile, run, executionReady, payDateReady, tele2NeedsOcr, tele2NeedsBg, dnbNeedsOcr, dnbNeedsBg, lansNeedsBg, lansNeedsOcr, transportNeedsBg, transportNeedsOcr]);
 
   const netAb = useMemo(() => run.salary_ab + run.adj_ab, [run.salary_ab, run.adj_ab]);
   const netAn = useMemo(() => run.salary_an + run.adj_an, [run.salary_an, run.adj_an]);
@@ -177,14 +189,20 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
       (run.tele2_amount > 0 ? 1 : 0) +
       (run.dnb_amount > 0 ? 1 : 0) +
       (includeLansForetag && run.lans_foretag_amount > 0 ? 1 : 0) +
-      (includeLansBil && run.lans_bil_amount > 0 ? 1 : 0);
+      (includeLansBil && run.lans_bil_amount > 0 ? 1 : 0) +
+      (includeTransport && run.transport_amount > 0 ? 1 : 0);
 
     const salarySum = netAb + netAn;
     const skvSum = run.agi + run.avdragen_skatt + (includeMoms ? run.moms : 0);
-    const paymentsSum = run.tele2_amount + run.dnb_amount + (includeLansForetag ? run.lans_foretag_amount : 0) + (includeLansBil ? run.lans_bil_amount : 0);
+    const paymentsSum =
+      run.tele2_amount +
+      run.dnb_amount +
+      (includeLansForetag ? run.lans_foretag_amount : 0) +
+      (includeLansBil ? run.lans_bil_amount : 0) +
+      (includeTransport ? run.transport_amount : 0);
 
     return { salaryTx, skvTx, paymentsTx, salarySum, skvSum, paymentsSum };
-  }, [run, includeMoms, includeLansForetag, includeLansBil, netAb, netAn]);
+  }, [run, includeMoms, includeLansForetag, includeLansBil, includeTransport, netAb, netAn]);
 
   function setField<K extends keyof RunInput>(key: K, value: RunInput[K]) {
     setRun((r) => ({ ...r, [key]: value }));
@@ -302,6 +320,7 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     setMomsMeta(null);
     setIncludeLansForetag(false);
     setIncludeLansBil(false);
+    setIncludeTransport(false);
     setSkvDateTouched(false);
     setPayDateTouched(false);
   }
@@ -338,7 +357,8 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
     !paymentsResult.xml ||
     tele2MissingForPayments ||
     dnbMissingForPayments ||
-    !lansReadyForPayments;
+    !lansReadyForPayments ||
+    !transportReadyForPayments;
 
   return (
     <div className="card">
@@ -657,6 +677,52 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
               )}
             </div>
           </div>
+
+          <div className="section">
+            <h3 className="h3">TRANSPORTSTYRELSEN</h3>
+
+            <div className="subsection">
+              <h3 className="h3">TRÄNGSELSKATT</h3>
+
+              {!includeTransport ? (
+                <div className="btnRow">
+                  <button
+                    onClick={() => {
+                      setIncludeTransport(true);
+                      setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
+                    }}
+                  >
+                    Add Trängselskatt
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="btnRow">
+                    <button
+                      className="danger"
+                      onClick={() => {
+                        setIncludeTransport(false);
+                        setRun((r) => ({ ...r, transport_amount: 0, transport_ocr: "" }));
+                      }}
+                    >
+                      Remove Trängselskatt
+                    </button>
+                  </div>
+
+                  <label>TRÄNGSELSKATT OCR</label>
+                  <input value={run.transport_ocr} placeholder="Digits only" onChange={(e) => setField("transport_ocr", e.target.value)} />
+
+                  <label>TRÄNGSELSKATT AMOUNT</label>
+                  <input
+                    disabled={!transportAmountEnabled}
+                    value={fmtInputNumber(run.transport_amount)}
+                    onChange={(e) => setField("transport_amount", toNumber(e.target.value))}
+                    inputMode="decimal"
+                  />
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="col">
@@ -757,6 +823,18 @@ export function NewRunPage({ profile, hasProfile, onGoProfile, onSaveHistory }: 
           {lansBilNeedsOcr && (
             <div className="small warn" style={{ marginTop: 12 }}>
               Bilförsäkring OCR is required when its amount &gt; 0.
+            </div>
+          )}
+
+          {transportNeedsBg && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Transportstyrelsen BG is required in <b>Profile</b>.
+            </div>
+          )}
+
+          {transportNeedsOcr && (
+            <div className="small warn" style={{ marginTop: 12 }}>
+              Trängselskatt OCR is required when its amount &gt; 0.
             </div>
           )}
 

@@ -26,6 +26,7 @@ export function defaultProfile(): Profile {
     dnbBg: "",
     lansForetagBg: "",
     lansBilBg: "",
+    transportstyrelsenBg: "",
     employees: {
       azim: { personnummer: "", clearingAccount: "" },
       aynun: { personnummer: "", clearingAccount: "" },

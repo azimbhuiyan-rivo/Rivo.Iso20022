@@ -113,6 +113,9 @@ export function ProfilePage({ profile, onChange }: Props) {
             <label>Länsförsäkringar Bilförsäkring BG</label>
             <input disabled={!editing} value={draft.lansBilBg} onChange={(e) => set("lansBilBg", onlyDigits(e.target.value))} />
 
+            <label>Transportstyrelsen BG</label>
+            <input disabled={!editing} value={draft.transportstyrelsenBg} onChange={(e) => set("transportstyrelsenBg", onlyDigits(e.target.value))} />
+
             <div className="small" style={{ marginTop: 10 }}>
               Stored in your browser (localStorage). Not pushed to GitHub Pages.
             </div>

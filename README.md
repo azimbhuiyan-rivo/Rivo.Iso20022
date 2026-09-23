@@ -5,7 +5,7 @@ A small, local, browser-based tool to generate **ISO 20022 payment files (pain.0
 It focuses on the monthly routine for a Swedish AB:
 - **Salaries file** (one credit transfer per employee)
 - **Skatteverket file** (Arbetsgivaravgift, Avdragen skatt, optional MOMS — own execution date)
-- **Payments file** (Tele2, DNB, Länsförsäkringar — Bankgiro + OCR, own execution date)
+- **Payments file** (Tele2, DNB, Länsförsäkringar, Transportstyrelsen — Bankgiro + OCR, own execution date)
 - **AGI XML import** to prefill salary + tax amounts
 - Optional **MOMS XML import** to prefill VAT
 > Everything runs **client-side only**. No backend. Data is stored in your browser’s `localStorage`.
@@ -28,6 +28,7 @@ From **New Run**, the app generates three XML files, each with its own execution
   - **Tele2** (Bankgiro + OCR) — mandatory
   - **DNB** (Bankgiro + OCR) — mandatory, monthly
   - **Länsförsäkringar** — Företagsförsäkring and/or Bilförsäkring, each optional, each paid to its own Bankgiro (set in Profile) + OCR
+  - **Transportstyrelsen** — Trängselskatt, optional, paid to its Bankgiro (set in Profile) + OCR
 
 Schema used in XML:
 - `urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`
@@ -35,14 +36,14 @@ Schema used in XML:
 ## App structure
 - **Profile**
   - Company/initiator + debtor account settings (IBAN/BIC)
-  - Default payees (Skatteverket BG/OCR, Tele2 BG, DNB BG, Länsförsäkringar BG for Företagsförsäkring and for Bilförsäkring)
+  - Default payees (Skatteverket BG/OCR, Tele2 BG, DNB BG, Länsförsäkringar BG for Företagsförsäkring and for Bilförsäkring, Transportstyrelsen BG)
   - Employees registry (personnummer → clearing+account)
 - **New Run**
   - Pick execution date (typically 22–24 of the month)
   - Upload **AGI XML** to auto-fill salary + tax values
   - (Optional) upload **MOMS XML** to auto-fill VAT
   - Adjust the Skatteverket and Payments execution dates if needed
-  - Enter OCR + amount for Tele2, DNB, and optionally Länsförsäkringar (Företagsförsäkring, Bilförsäkring)
+  - Enter OCR + amount for Tele2, DNB, and optionally Länsförsäkringar (Företagsförsäkring, Bilförsäkring) and Transportstyrelsen (Trängselskatt)
   - Download the three generated XML files
 - **History**
   - Stores runs locally
@@ -72,13 +73,14 @@ Notes:
      - Tele2 Bankgiro
      - DNB Bankgiro
      - (Optional) Länsförsäkringar Bankgiro — Företagsförsäkring and/or Bilförsäkring
+     - (Optional) Transportstyrelsen Bankgiro — Trängselskatt
    - Add employees:
      - Personnummer, clearing+account
 2) Go to **New Run**
    - Pick **Execution date** (the date SEB debits your corporate account — typically 22–24). Tip: if you want salary visible on day D, set execution date to D-1 banking day.
    - Upload **AGI XML** to prefill salaries + tax
    - (Optional) Upload **MOMS XML** to prefill VAT
-   - Enter OCR + amount for Tele2 and DNB (mandatory), Länsförsäkringar (optional)
+   - Enter OCR + amount for Tele2 and DNB (mandatory), Länsförsäkringar and Transportstyrelsen (optional)
    - Download:
      - `<executionDate>-salaries.xml`
      - `<skvExecutionDate>-skatteverket.xml`

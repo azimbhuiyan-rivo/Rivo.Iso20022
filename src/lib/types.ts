@@ -15,6 +15,7 @@ export type Profile = {
   dnbBg: string;
   lansForetagBg: string;
   lansBilBg: string;
+  transportstyrelsenBg: string;
   employees: {
     azim: EmployeeProfile;
     aynun: EmployeeProfile;
@@ -40,4 +41,6 @@ export type RunInput = {
   lans_foretag_ocr: string;
   lans_bil_amount: number;
   lans_bil_ocr: string;
+  transport_amount: number;
+  transport_ocr: string;
 };

@@ -200,6 +200,14 @@ export function buildPaymentsXml(profile: Profile, run: RunInput): string | null
     txs.push({ e2e: `LANSF-BIL-${date}`, amount: run.lans_bil_amount, ustrd: `OCR ${ocr}`, name: "Länsförsäkringar", bg });
   }
 
+  if (run.transport_amount > 0) {
+    const ocr = digits(run.transport_ocr);
+    if (!ocr) return null;
+    const bg = digits(profile.transportstyrelsenBg);
+    if (!bg) return null;
+    txs.push({ e2e: `TRANSPORTSTYRELSEN-${date}`, amount: run.transport_amount, ustrd: `OCR ${ocr}`, name: "Transportstyrelsen", bg });
+  }
+
   if (txs.length === 0) return null;
 
   return document(profile, `RIVO-${date}-PAYMENTS`, txs, bgPmtInf(profile, `RIVO-${date}-VENDORS`, date, txs));
